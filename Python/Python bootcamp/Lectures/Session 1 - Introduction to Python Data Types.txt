@@ -1,0 +1,140 @@
+***** Introduction to Python data types
+- Building blocks of the code
+Integers -  (int) -  Whole numbers, such as: 3 300 200
+Floating point - (float) numbers with decimal points 2.3 4.6 100.0
+strings - (str) Ordered sequence of characters: "hello" 'sammy' "2000" 
+lists - (list) - Ordered sequence of objects : [10,"hello", 200.3]
+dictionaries - (dict) - unordered key:value pairs {"mykey":"value","name":"rankie"} 
+tuples - (tup) - ordered immutable sequence of objects: (10,"hello",200.3")
+sets - (set) - Unordered collection of unique objects: {"a","b"}
+booleans - (bool) - Logical value indicating true or false
+
+
+***** Python numbers
+Two main number types
+- Integers
+- Floating point
+
+***** Variable Assignments
+Rules for variable names
+- names can not start with a number
+- There can be no spaces in the name, use _ instead
+- Its considered best practice (PEP8) that names are lowercase
+- Avoid using words that have special meaning in python like "list" and "str"
+
+Python uses dynamic typing
+This means you can reassign variables to different data types
+This makes python very flexible in assigning data types, this is different than other languages that are "statistically-Typed"
+example:
+my_dogs=2
+my_dogs=["sammy","tommy"]
+
+- Pros of Dynamic typing:
+Very easy to work with
+Faster deployment time
+- Cons of Dynamic typing
+May result in bugs for unxpected data types
+you need to be aware of type()
+
+
+***** Introduction to strings
+ - Strings are sequences of characters, using the syntax of single quotes or double quotes:
+ 'hello'
+ "Hello"
+ "I don't do that"
+- Because strings are ordered sequences it means we can use indexing and slicing to grab sub-sections of the strings
+- Indexing notation uses[] notation after the string (or variable assigned to the string)
+- Indexing allows you to grab a single character from the string
+- These actions use [] square barackets and a number index to indicate positions of what you wish to grab
+- Slicing allows you to grab a subsection of multiple characters, a "slice" of the string.
+- This has the following syntax:
+[start:stop:step]
+- start is a numerical index for the slice start
+- stop is the index you will go up to (but not include)
+- Step is the size of the "jump" you take
+
+
+***** String indexing and slicing
+-----
+mystring[::2] - jumps of 2
+'acegik'
+-----
+
+----
+mystring[::-1]
+----
+
+***** String Properties and methods
+Immutability
+
+Strings are immutable
+
+Concatenation - merging 2 strings together
+
+We will get error while concatenating numbers with strings
+
+- methods
+x.upper()
+x.capitalize()
+
+
+***** Print formatting with strings
+- Often you will want to "inject" a variable into your string for printing.
+For example:
+my_name="Jose"
+print("Hello" + my_name)
+- There are multiple ways to format strings for printing variables in them.
+- This is known as string interpolation
+- Lets explore 2 methods for this
+.format() method
+f-strings (formatted string literals)
+
+Float Formatting follows "{value:width.precision f}"
+
+- f-strings (formatted string literals)
+
+
+***** Lists in Python
+- Lists are ordered sequences that can hold a variety of object types
+- They use [] brackets and commas to seperate objects in the list
+- List supports indexing and slicing. Lists can be nested and also have a variety of useful methods that can be called off of them
+
+
+***** Dictionaries in Python
+- Dictionaries are unordered mappings for storing objects. Previously we saw how lists store objects and ordered sequence, dictionaries are key-valye pairing instead.
+- This key-value pair allows users to quickly grab objects without needing to know an index location.
+- Dictionaries use curly braces and colons to signify the keys and their associated values
+{Key1:value,Key2:Value}
+- So when to choose a list and when to choose a dictionary
+Dictionaries: Objects retrieved by key name (unorderes and can not be sorted)
+Lists: objects retrieved by location
+Ordered sequence can be indexed or sliced
+
+
+***** Tuples with Python
+Tuples are very similar to lists. However they have one key diference - Immutability
+Once an element is inside a tuple, it can not be reassigned
+Tuples use parenthesis (1,2,3)
+
+
+***** Sets in Python
+Sets are unordered collections of unique elements
+Meaning there can only be one representative of the same object
+
+
+***** Booleans in Python
+Booleans are operators that allow you to convey true or false statements
+These are very important later on when we deal with control flow and Logic
+
+
+***** I/O with basic files in Python
+If you wan to open files at anotehr location on your computer, simply pass the complete path.
+
+- Reading, writing, Appending modes
+mode='r' is read only
+mode='w' is write only
+mode='a' is append only
+mode='r+' is reading and writing
+mode='w+' is writing and reading
+
+***** Python objects and data structures

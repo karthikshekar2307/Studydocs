@@ -1,0 +1,423 @@
+Session 7 - Outputs
+---------------------
+
+***** Outputs Introduction
+
+- Outputs section declares output values that we can
+  - Import in to other stacks (to create cross-stack references)
+  - When using nested stacks, we can see how outputs of a nested stack are used in root stack
+  - We can view outputs on Cloudformation console
+
+- We can declare maximum of 60 outputs in a cfn template
+
+- Syntax:
+  
+Outputs:
+  LogicalID:
+    Description: Information about the value
+    Value: Value to return
+    Export:
+      Name: Value to export
+
+Example:
+Outputs:
+  InstanceID: 
+    Description: Instance ID
+    Value: !Ref MyVMInstance
+    Export:
+      Name: !Sub "${AWS::StackName}-InstanceID"
+  MyInstAvailabilityZone:
+    Description: Instance availability zone
+    Value: !GetAtt MyVMInstance.AvailabilityZone
+    Export:
+      Name: !Sub "${AWS::StackName}-InstanceAz"
+
+
+- Exports (optional)
+   - Exports contain resource output used for cross-stack reference.
+   - For each AWS account, export name must be unique with in the region. As it should be unique we can use th export name as "AWS:;StackName"-ExportName
+   - We cant create cross-stack references across regions
+   - We can use the intrinsic fuction Fn::ImportValue to import values that have been exported within the same region, We will see this practically.
+     - In simple terms, export availability zone in stack1 and use it stack2
+   - For Outputs, the value of the Name property of an export cant use Ref or GetAtt functions that depend on a resoure
+   - We cant delete a stack if another stack references one of its outputs
+   - We cant modify or remove an output value that is referenced by another stack.
+   - We can use outputs in combinaton with conditions. We will see that in our pracitise sessions for outputs.
+
+
+***** Outputs - InstanceID as output
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::Keyname
+    Description: Select the keypair
+  EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !Ref MyKeyName
+      SecurityGroups: 
+        - default
+
+ Outputs:
+   MyInstanceID:
+     Description: My Instance ID
+     Value: !Ref MyEc2Instance
+
+
+ ***** Outputs - Intrinsic function Fn::GetAtt
+
+ AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::Keyname
+    Description: Select the keypair
+  EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !Ref MyKeyName
+      SecurityGroups: 
+        - default
+
+ Outputs:
+   MyInstanceID:
+     Description: My Instance ID
+     Value: !Ref MyEc2Instance
+   MyDNSName:
+     Description: My Public DNS NAme
+     Value: !Getatt MyVMInstance.PublicDnsName
+   MyInstanceAvailabilityZone:
+     Description: Instance avaialability zone
+     Value: !GetAtt MyVMInstance.AvailabilityZone  
+
+
+***** Outputs - Intrinsic function Fn::Sub and Export feature
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::Keyname
+    Description: Select the keypair
+  EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !Ref MyKeyName
+      SecurityGroups: 
+        - default
+  MyDevGlobalSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateDevSecurityGroup
+    Properties:
+      GroupDescription: My Dev environment Global Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+
+ Outputs:
+   MyInstanceID:
+     Description: My Instance ID
+     Value: !Ref MyEc2Instance
+   MyDNSName:
+     Description: My Public DNS NAme
+     Value: !Getatt MyVMInstance.PublicDnsName
+   MyInstanceAvailabilityZone:
+     Description: Instance avaialability zone
+     Value: !GetAtt MyVMInstance.AvailabilityZone 
+     Export:
+       Name: !Sub "${AWS::StackName}-InstanceAZ"
+   MyDevGlobalSecurityGroup:
+     Description: My Dev SG
+     Value: !Ref MyDevGlobalSecurityGroup
+     Export:
+       Name: MyDEvSSHGlobalSG
+
+
+
+ ***** Outputs - Cross reference stacks using exports feature
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::Keyname
+    Description: Select the keypair
+  EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !Ref MyKeyName
+      SecurityGroups: 
+        - !ImportValue: MyDEvSSHGlobalSG
+      AvailabilityZone: !ImportValue stack1-InstanceAZ
+
+
+***** Outputs - For Master Stack - Test delete stack and Modify stack
+
+
+
+***** Outputs - Conditions in outputs section of a template
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::Keyname
+    Description: Select the keypair
+  EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+
+
+Conditions:
+  CreateDEvSecurityGroup: !Equals [!Ref MyEnvironment, dev]
+
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !Ref MyKeyName
+      SecurityGroups: !If [CreateDevSecurityGroup, [!Ref MyDevGlobalSecurityGroup], !Ref 'AWS::NoValue']
+
+   MyDevGlobalSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateDevSecurityGroup
+    Properties:
+      GroupDescription: My Dev environment Global Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+
+ Outputs:
+   MyInstanceID:
+     Description: My Instance ID
+     Value: !Ref MyEc2Instance
+   MyDNSName:
+     Description: My Public DNS NAme
+     Value: !Getatt MyVMInstance.PublicDnsName
+   MyInstanceAvailabilityZone:
+     Description: Instance avaialability zone
+     Value: !GetAtt MyVMInstance.AvailabilityZone 
+     Export:
+       Name: !Sub "${AWS::StackName}-InstanceAZ"
+   MyDevGlobalSecurityGroup:
+     Description: My Dev SG
+     Value: !Ref MyDevGlobalSecurityGroup
+     Export:
+       Name: MyDEvSSHGlobalSG
+
+
+
+***** Outputs - Intrinsic function Fn::Join
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::Keyname
+    Description: Select the keypair
+  EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+
+
+Conditions:
+  CreateDEvSecurityGroup: !Equals [!Ref MyEnvironment, dev]
+
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !Ref MyKeyName
+      SecurityGroups: !If [CreateDevSecurityGroup, [!Ref MyDevGlobalSecurityGroup], !Ref 'AWS::NoValue']
+
+   MyDevGlobalSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateDevSecurityGroup
+    Properties:
+      GroupDescription: My Dev environment Global Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+
+ Outputs:
+   MyInstanceID:
+     Description: My Instance ID
+     Value: !Ref MyEc2Instance
+   MyDNSName:
+     Description: My Public DNS NAme
+     Value: !Getatt MyVMInstance.PublicDnsName
+   MyInstanceAvailabilityZone:
+     Description: Instance avaialability zone
+     Value: !GetAtt MyVMInstance.AvailabilityZone 
+     Export:
+       Name: !Sub "${AWS::StackName}-InstanceAZ"
+   MyDevGlobalSecurityGroup:
+     Description: My Dev SG
+     Value: !Ref MyDevGlobalSecurityGroup
+     Export:
+       Name: !Join [":", [!Ref 'AWS::StackName', MyDEvSSHGlobalSG]]
+

@@ -1,0 +1,226 @@
+Session - Practicals
+----------------------
+
+***** Generate certificates
+Openssl 
+Generate keys
+# opensll genrsa -out ca.key 2048
+
+Certificate signing request
+# openssl req -new -key ca.key -subj "/CN=KUBERNETES-CA" -out ca.csr
+
+Sign Certificate
+# openssl x509 -req -in ca.csr -signkey ca.key -out ca.crt
+
+- Client certiificates
+Admin:
+Generate keys
+# openssl genrsa -out admin.key 2048
+
+Certificate signing request
+# openssl req -new -key admin.key -subj "/CN=kube-admin" -out admin.csr
+
+Sign Certificates
+# openssl x509 -req -in admin.csr -CA ca.crt -CAkey -out admin.crt
+
+We can use the certs via API
+# curl https://kube-apiserver:643/api/v1/pods --key admin.key --cert admin.crt --cacert ca.crt
+
+
+**** View Certificate details
+
+
+***** Certificates API
+CA server
+- where it is located
+its just a pair of keys. These files needs to be protected and stored on server. 
+kuberntes has built in kubernetes API. 
+1. Create CertificateSigningRequest Object
+2. Review requests
+3. Approve requests
+4. Share certs to users
+
+# openssl genrsa -out jane.key 2048
+
+# openssl req -new -key jane.key -subj "/CN=jane" -out jane.csr
+
+generate base64 encoded text
+# cat jane.csr |base64
+
+***** Practise test
+To check what group CSR requesting to 
+# kubectl get csr agent-smith -o yaml
+
+To delete CSR
+# kubectl delete csr agent-smith
+
+To reject CSR
+# kubectl certificate deny agent-smith
+
+***** Kube-config
+Example
+apiVersion: v1
+kind: Config
+clusters:
+- name: my-kube-playground
+  cluster:
+     certifiate-authority:
+     server: https://my-kube-playground:6443
+contexts:
+- name: my-kube-admin@my-kube-playground
+  context: 
+    cluster: my-kube-playground
+    user: my-kube-admin
+users:
+- name: my-kube-admin
+  user:
+    client-certificate: admin.crt
+    client-key: admin.key
+
+You can set the default context using "current-context" 
+apiVersion: v1
+kind: Config
+current-context: dev-user@google
+clusters:
+- name: my-kube-playground
+- name: development
+- name: production
+- name: google
+contexts:
+- name: my-kube-admin@my-kube-playground
+- name: dev-user@google
+- name: prod-user@production
+users:
+- name: my-kube-admin
+- name: admin
+- name: dev-user
+- name: prod-user
+
+Command to use and modify config
+
+View config details
+# kubectl config view
+
+Update current context
+# kubectl config use-context prod-user@production
+
+# kubectl config -h
+
+- Switch to particular namespace
+When you specify "namespace" under context section of config file, kubectl can take you to specific namespace when you use the context.
+
+Certificates in kubeconfig
+
+***** Practise test
+Use the config
+# kubectl config --kubeconfig=/root/my-kube-config use-context research
+
+
+How to create a role?
+- using role definition file
+# vi developer-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: developer
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "get", "create", "update", "delete"]
+- apiGroups: [""]
+  resources: ["ConfigMap"]
+  verbs: ["create"]
+
+# kubectl create -f developer-role.yaml
+
+# vi devuser-developer-binding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: devuser-developer-binding
+subjects:
+- kind: user
+  name: dev-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: role
+  name: developer
+  apiGroup: rbac.authorization.k8s.io
+
+To limit user access to specific namespace
+
+# kubectl get roles
+# kubectl get rolebindings
+
+Check access
+# kubectl auth can-i create deployments
+# kubectl auth can-i delete nodes
+
+To impersonate
+# kubectl auth can-i create deployments --as dev-user
+
+**** Cluster roles and Role bindings
+
+To see the resources that are namespace based
+# kubectl api-resources --namespaced=true
+# kubectl api-resources --namespaced=false
+
+**** Image security
+# kubectl create secret docker-registry regcred --docker-server=private-registry.io --docker-username=registry-user --docker-password=registry-password --docker-email=registry-user@org.com
+
+***** Network Policy
+By default kubernetes is configured with "All Allow"
+
+Link network policy to pods to restrict connections.
+
+To create network policy
+- we use labels and selectors
+
+Example:
+PolicyTypes:
+- Ingress
+ingress:
+- from:
+  - podSelector:
+      matchLabels:
+        name: api-pod
+  ports:
+  - protocol: TCP
+    port: 3306
+
+
+vi network-policy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  nameL db-policy
+spec:
+  podSelector:
+    matchLabels:
+      role: db
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          name: api-pod
+    ports:
+    - protocol: TCP
+      port: 3306
+
+
+**** Solution  - Practicals - Network policy
+
+To see network policy
+# kubeclt get netpol
+
+Which pod network policy applied on
+# kubectl get pods -l name=payroll
+
+What type of traffic this policy is configured to handle
+#kubectl describe netpol payroll-policy
+
+What is the impact of this rule
+#kubectl describe netpol payroll-policy
+

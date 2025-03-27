@@ -1,0 +1,148 @@
+1. Deploy a pod named nginx-448839 using the nginx:alpine image.
+# kubectl run nginx-448839 --image=nginx:alpine
+
+2. Create a namespace called apx-z993845
+# kubectl create ns apx-z993845
+
+3. Create a new deployment called httpd-frontend with 3 replicas using image httpd:2.4-alpine
+# kubectl create deployment httpd-frontend --image=httpd:2.4-alpine --replicas=3
+
+4. Deploy a messaging pod using the redis:alpine image with the labels set to tier=msg
+# kubectl run messaging --image-redis:alpine -l tier=msg
+
+5. A replicaset rs-d33393 is created, However the pods are not coming up. Identify and fix.
+# kubectl get rs
+# kubectl describe rs rs-d33393
+# kubectl edit rs rs-d33393 (change/remove the typo)
+remove pods in trouble
+# kubectl get pod
+# kubectl describe pod <pod-name>
+# kubectl delete -l name=busybox-pod
+# kubectl get rs
+
+6. Create a service messaging-service to expose the redis deplpoyment in the marketing namespace within the cluster port 6379
+# kubectl expose deployment redis --port=6379 --name messaging-service --namespace marketing
+
+7. Update the environment variable on the pod webapp-color to use a green background
+# kubectl get pods
+# kubectl get pod <podname> -o yaml > webapp-color.yaml
+# vi webapp-color.yaml
+<change env variable to green>
+# kubectl delete pod  <podname> or # kubectl replace -f webapp-color.yaml
+
+8. Create a new configmap called cm-33929845 use the spec given below
+# kubectl create configmap cm-33929845 --from-literal=DB_NAME=SQL3322 --from-literal=DB_HOST=sql322.mycompany.com
+# kubectl describe configmap
+
+9. create a new secret named db-secret-xxdf 
+# kubectl create secret generic db-secret-xxdf --from-literal=DB_HOST=sql01 --from-literal=DB_User=root --from-literal=DB_Password=password123
+
+10. Update pod app-sec-kff3345 to run as Root user and with the SYS_TIME capability
+# kubectl get pod
+# kubectl get pod app-sec-kff3345 -o yaml > app-sec.yaml
+< go to spec, 
+spec:
+    containers:
+        - command:
+            - sleep
+            - "4800"
+        image: ubuntu
+        name: ubuntu
+        securityContext:
+            capabilities:
+                add: ["SYS_TIME"]
+    securityContext: 
+        runAsUser: 0
+# kubectl replace app-sec.yaml -force
+
+11. Export the logs of the e-com-1123 pof to the file /opt/outputs/e-com-1123.logs
+# kubectl get ns
+# kubectl get pod e-com-1123 -n e-com
+# kubectl logs e-com-1123 -n e-com > /opt/outputs/e-com-1123.logs
+
+12. Create a Persistent volume with given specification
+----
+apiVersion: v1
+kind: PersisentVolume
+metadata:
+    name: pv003
+spec:
+    capacity:
+        storage: 5Gi
+    volumeMode: Filesustem
+    accessModes:
+        - ReadWriteOnce
+    PersistentVolumeReclaimPolicy: Recycle
+    storageClassName: slow
+    mountOptions:
+        - hard
+        - nfsvers-4.1
+    nfs:
+        path: /tmp
+        server: 172.17.0.2
+# vi pv.yaml
+apiVersion: v1
+kind: PersisentVolume
+metadata:
+    name: pv-analytics
+spec:
+    capacity:
+        storage: 100Mi
+    volumeMode: Filesustem
+    accessModes:
+        - ReadWriteMany
+    hostPath:
+        path: /pv/data-analytics
+
+# kubectl apply -f pv.yaml
+
+13. Create a redis deployment using the image redis:alpine with 1 replica and label app=redis. Expose it via a ClusterIP service called redis on port 6379. Create a new Ingress  Type 
+network policy called redis-access which allows only the pods with label access=redis to access the deployment
+# kubectl create deployment redis --image=redis:alpine --replicas=1
+# kubectl expose deployment redis --name=redis --port=6379 --target-port=6379
+# vi networkpolicy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-access
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          access: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+
+# kubectl apply -f networkpolicy.yaml
+
+14. Create a pod called sega with two containers:
+    container1: name tails with image busybox and command: sleep 3600
+    container2: name sonic with image nginx and environment variable: NGINX_PORT with value 8080
+
+    # vi segayaml
+    apiVersion: vi
+    kind: pod
+    metadata:
+        name: sega
+    spec:
+        containers: 
+            - name: tails
+              image: busybox
+              command:
+                - sleep
+                - "3600"
+            - name: sonic
+              image: nginx
+              env:
+                - name: NGINX_PORT
+                value: "8080"
+# kubectl create -f sega.yaml

@@ -1,0 +1,111 @@
+***** Datacenter regions and region pair
+- Datacenter
+- regions - which is a physical location around world where we cluster data centers
+- region pair
+
+- Azure has more global regions
+
+- Better scalability and redundancy
+
+- preserve data residency
+low larency
+global foorprint
+high availability
+
+Azure region pairs
+- Each azure region is always paired with another region within same geography
+- Datacenters are usually 300+ miles apart
+- Automatic replication and failover for some azure services
+- Additional advantages of region pairs
+If an extensive Azure outage occurs, one region out of every pair is prioritized to make sure at least one is restored
+as quickly as possible for applications hosted in that region pair
+Planned azure updates are rolled out to paired regions one region at a time to minimize downtime and risk of application outage
+Data continues to reside within the same geography as its pair.
+
+
+***** Availability zones
+- We may have multiple availability zones in a region.
+- is a set of descrete data centers
+
+
+***** Resource groups
+- logical grouping of resources
+Subscriptions - for billing
+
+Resources: resources are instances of services that you create like virtual machines, storage, SQL databases etc.
+
+Resource groups: resources are combined into resource groups, which act as a logical container into which Azure resources
+like web apps, databases, and storage accounts are deployed and managed.
+
+Subscriptions groups together user accounts and the resources that have been created by those user accounts. For each subscription,
+there are limits ir quotas on the amount of resourcs that you can create and use. Organizations can use subscriptions to managed
+costs and the resources that are created by users, teams or projects
+
+Management Groups: These groups help you manage access, policy, and compliance for multiple
+subscriptions, All subscriptions in a management group automatically inherit the
+conditions applied to the management group.
+
+
+***** Azure resource manager
+
+- Is used to deploy resources in Azure.
+
+There are different ways to create resources in Azure using Azure resource manager
+- Azure portal
+- Azure Powershell
+- Azure CLI
+- REST clients
+
+Resource manager template --> export template --> download --> deploy in another resource group
+
+Storage account name should be unique in Azure.
+
+Azure Resource manager (ARM)
+- Automate resource deployments (create, update and delete) using templates
+- ARM template is a JSON file that defines what you want to deploy to Azure.
+- Integrate with all portals
+- Easy way to deploy multiple resources
+- define dependency of resources
+
+***** Subscriptions
+Attached with account, may have more than one subscriptions.
+- Set budgets
+- allows policies and quotas
+
+- Using azure requires an subscription
+- An azure subscription is a logical unit of azure services that
+links to an azure account. It also allows you to provision resiurces
+- A subscription provides you with authenticated and authorized access 
+to azure products and services.
+- Azure generates seperate billing reports and invoices for each
+subscription
+- Two types of subscription boundaries
+Billing boundary
+access control boundary
+- You can create seperate subscriptions based on:
+Environment development and testing, security or to isolate data for compliance reasons
+Organizational sttuctures - IT, HR, Admin and so on
+Billing: Manage and track costs based on your needs for example - production, test and dev
+- Different types of subscription
+Free - An email address and a credit card required to signup for a free trial
+subscription that provides credit for first 30 days
+Pay per use charges monthly based on cloud resource use
+Enterprise: A single enterprise agreement is established for large subscription
+purchases, including savings for new licenses and software assurance
+
+
+***** Management groups
+IF we have more subscriptions - MAnagement groups (helps manage subscriptiosn as single management 
+entity to facilitate easier management)
+
+- You can create managemant groups in a hierarchial structure with The
+top level of the hierarchy at the tenant level and containing all subscriptions
+in that tenant
+
+- Any condition applied to a management group apply to all subscriptions
+containeed in that management group object.
+
+- Each mangement group and subscripton can only support one parent
+
+- Management group can have many child
+

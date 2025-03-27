@@ -1,0 +1,44 @@
+Ansinble - Configuration management tool.
+
+- It is a opensource tool.
+
+Ansible uses a push mechanism: Whenever you update in Ansible server (master machine) it would be pushed 
+to the nodes
+
+
+Chef/Puppet - uses pull machanism and its agent based.
+
+To set-up Ansible
+Create on Ansible server
+setup clients
+- create user on all servers/clients
+- setup SUDO permissions
+- Setup SSH
+- Trust relationship 
+
+
+- After installing ansible on the master server
+* edit /etc/ansible/hosts
+(below syntax)
+[group1]
+1.2.4.5
+2.3.5.5
+
+[group2]
+5.6.7.8
+7.6.5.4
+
+configuration file - /etc/ansible/ansible.cfg (this is where we tell ansible that we are using hosts)
+- remove # from 14 and 22
+
+Create ansible user on all machines
+add entries in sudoers file
+----------
+visudo
+ansible  ALL=(ALL)     NOPASSWD: ALL
+-----------
+
+Edit - /etc/ssh/sshd_config
+Enable below
+PermitRootLogin yes
+PasswordAuthentication yes

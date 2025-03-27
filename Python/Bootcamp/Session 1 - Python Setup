@@ -1,0 +1,73 @@
+Session 1 - Python object and data structure basics
+-----------------------------------------------------
+
+***** Introduction to python data types
+Integers - INT
+Floating point - Float
+strings - str
+lists - list
+dictionaries - dict
+Tuples - tup
+sets - set
+Booleans - bool
+
+
+***** Python Numbers
+There are two main number types we will work with:
+- Integers which are whole Numbers
+- Floating point numbers which are numbers with a decimal
+- Lets explore basic math with python
+
+Mod operator - displays reminder
+
+
+***** Numbers - FAQ
+Numbers FAQ 
+1. What's the difference between floating point and an integer?
+An integer has no decimals in it, a floating point number can display digits past the decimal point.
+2. Why doesn't 0.1+0.2-0.3 equal 0.0 ?
+This has to do with floating point accuracy and computer's abilities to represent numbers in memory. For a full breakdown, check out: https://docs.python.org/2/tutorial/floatingpoint.html
+
+
+***** Variable assignments
+- It would be nice to assign these data types a variable name to easily reference them later in our code
+For example:
+my_dogs = 2
+
+Rules for variable names
+- Names cannot start with a number
+- There can be no space in the name, use _ instead
+- It is considered best practise (PEP8) that names are lowercase
+- Avoid using words that have special meaning like list and str
+
+- Python uses Dynamic typing
+- This means you can reassign variables to different data types
+- This makes python very flexible in assigning data types, this is different than other languages that are statistically-typed
+
+Pros of dynamic typing
+- Very easy to work with
+- Faster development time
+
+Cons of dynamic typing
+- May result in bugs for unexpected data types
+- You need to be aware of type()
+
+
+***** Introduction to strings
+- Sequences of characters, using the syntax of either single or double codes
+'hello', "Hello", "I dont do that"
+- Because strings are ordered sequences it means we can using indexing and slicing to grab sub-sections of the strings
+- Indexing notation uses [] notation after the string (or variable assigned the string)
+- Indexing allows you to grab a single character from the string.
+- These actions use [] square brackets and a number index to indicate positions of what you wish to grab
+character: h  e  l  l  o
+Index:     0  1  2  3  4
+Reverse:   0  -4 -3 -2 -1
+
+- Slicing allows you to grab a subsection of multiple characters, a "slice of the string.
+- This has the following syntax:
+[start:stop:step]
+- Start is a numerical index for the slice start
+- Stop is the index you will go up to (but not include)
+- Step is the size of the "jump" you take
+

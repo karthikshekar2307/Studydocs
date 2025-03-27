@@ -1,0 +1,803 @@
+Session 6 - Security
+--------------------
+
+***** Kubernetes security premitives
+kube-apiserver- center of all resources
+2 decisions
+- who can access (authenticate mechanisms, certificates, service accounts
+- whatt they can do (RBAC authorization, authorized based access control (ABAC), Node authoriization, webhook )
+
+All communications between components in cluster like etcd, kube controller manager, kube scheduler, kube proxy, kubelet etc. and also kubelet is encrypted using TLS
+
+All pods can access all other pods in cluster. You can restrict access using network policies.
+
+
+***** Authentication
+Users
+Service accounts
+
+kubernetes can manage service accounts.
+
+All user access is managed by kube-apiserver (kubectl or API)
+
+How kubeapi server authenticates.
+- Static password file
+- Static token file
+- certificates
+- Identity services
+
+- Static password file
+We can create a csv file with details such as password, username and userid and pass the name of the file to service config file via "--basic-auth-file=user-details.csv". Then restart kubeapi service
+Incase of kubeadm edit:
+/etc/kubernetes/manifest/kube-apiserver.yaml
+--basic-auth-file=user-details.csv
+
+via API
+# curl -v -k https://master-node-ip:6443/api/v1/pods -u "user1:password123"
+
+You can also supply token file with "--token-auth-file=user-details.csv"
+
+via API
+# curl -v -k https://master-node-ip:6443/api/v1/pods --header "Authorization: bearer <token>"
+
+
+***** Article on setting up basic authentication
+Setup basic authentication on Kubernetes (Deprecated in 1.19)
+Note: This is not recommended in a production environment. This is only for learning purposes. Also note that this approach is deprecated in Kubernetes version 1.19 and is no longer available in later releases
+
+Follow the below instructions to configure basic authentication in a kubeadm setup.
+
+Create a file with user details locally at /tmp/users/user-details.csv
+
+# User File Contents
+password123,user1,u0001
+password123,user2,u0002
+password123,user3,u0003
+password123,user4,u0004
+password123,user5,u0005
+
+
+Edit the kube-apiserver static pod configured by kubeadm to pass in the user details. The file is located at /etc/kubernetes/manifests/kube-apiserver.yaml
+
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+    - kube-apiserver
+      <content-hidden>
+    image: k8s.gcr.io/kube-apiserver-amd64:v1.11.3
+    name: kube-apiserver
+    volumeMounts:
+    - mountPath: /tmp/users
+      name: usr-details
+      readOnly: true
+  volumes:
+  - hostPath:
+      path: /tmp/users
+      type: DirectoryOrCreate
+    name: usr-details
+
+
+Modify the kube-apiserver startup options to include the basic-auth file
+
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+    - kube-apiserver
+    - --authorization-mode=Node,RBAC
+      <content-hidden>
+    - --basic-auth-file=/tmp/users/user-details.csv
+Create the necessary roles and role bindings for these users:
+
+
+
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: default
+  name: pod-reader
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+ 
+---
+# This role binding allows "jane" to read pods in the "default" namespace.
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: read-pods
+  namespace: default
+subjects:
+- kind: User
+  name: user1 # Name is case sensitive
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role #this must be Role or ClusterRole
+  name: pod-reader # this must match the name of the Role or ClusterRole you wish to bind to
+  apiGroup: rbac.authorization.k8s.io
+Once created, you may authenticate into the kube-api server using the users credentials
+
+curl -v -k https://localhost:6443/api/v1/pods -u "user1:password123"
+
+
+***** TLS Introduction
+
+
+***** TLS Basics
+Certificate is required to establish trust between 2 parties during transaction.
+When a user tried to connect to webserver TLS ensures the connection established between user and webserver is encrypted and server is who says it is.
+In case there is no TLS, the details will be sent in a plain text format.
+The data is encrypted using the key. Set of random characters and numbers are added so that the data will not be in recognized format. The data is then sent to the server.
+
+So we must encrypt the data we send using encryption keys. The data is then sent to the server, the hackers sniffing the network gets the data but cant do anything with that. Its the same case with
+server receiving the data. It cannot decrypt the data without the key. So the copy of key should also be sent along with data to server, so that server can decrypt it.
+
+The attacker can sniff keys and gain access to data. this is called symmetric encryption, as the same key is required from client and server and keys exchanged between client and server can be risky
+
+Hence, we have Asymmetric encryption.
+- While symmetric encryption uses same keys, asymmetric encryption uses 2 keys - Public key and private key.
+
+ We use "openssl" command to generate public and private key pair
+ # openssl genrsa -out my-bank.key 1024
+ # openssl rsa -in my-bank.key -pubout > mybank.pem
+
+ When the user tries to access webserver using https, user gets public key from the server. The user browser then encrypts the symmetric key using public key provided by server. 
+ The symmetric key is now secure. The user then sends this to the server.
+
+ Now, the server uses the private key to decrypt the message to retrieve symmetric key. However the hacker does not have private key to decrypt the data he received. 
+ Now the symmetric key is only available to user that they can use to send and receive data.
+
+ When server sends private key, it sends certificate.
+
+ Every browser has certificate checking mechanism and checks all certificate received on server and validates if its legitimate.
+
+ CA- well known org. that can sign certificate for you. 
+ CSR 
+ # openssl req -new -key my-bank.key -out my-bank.csr -subj "/c=US/ST=CA/0=MyOrg, Inc,/CN=mydomain.com"
+ Send this CSR to CA for signing.
+
+ The CAs have their own Public and private keys, the private keys are used to sign certificate and public keys are built-in all browsers.
+
+ CA server can be deployed internally and public keys can be kept on org. browsers
+
+ What can server do to validate client
+ - server can request cert from client.
+
+ PKI - Public key infrastructure.
+
+ Naming conventions
+ ------------------
+ (a) Public keys
+ .crt
+ .pem
+ example - server.crt, server.pem
+
+(b) Private keys
+.key
+key.pem
+example - server.key
+
+
+***** TLS in kubernetes.
+All communications between kubernetes nodes must be secured and encrypted. Administrator accessing kubernetes cluster either via "kubectl" command or kube API, need to establish connection via TLS cert.
+
+Primary requirement
+- All servers to use server certificates
+- All clients to use client cerificate
+
+Server Component:
+Kube-apiserver : exposes an HTTPS service to other services and external components that use to manage kuberentes cluster. It needs certificate to secure all communications
+example - apiserver.crt 
+          apiserver.key
+
+
+ETCD server - 
+          etcdserver.crt
+          etcdserver.key
+
+
+Kubelet server
+          kubelet.crt
+          kubelet.key
+
+
+Client Components
+users/admin
+          admn.crt
+          admin.key
+
+
+Scheduler
+       schedler.crt
+       scheduler.key
+
+
+kube controller manager
+       controller.crt
+       controller.key
+
+kube-proxy
+        kubeproxy.crt
+        kubeproxy.key
+
+
+- Kube-apiserver interacts with etcd server and also kubelet hence it needs a certificates - apiserver-etcd-client.crt/apiserver-etcd-client.key   and apiserver-kubelet-client.crt/apiserver-kubelet-client.key
+
+
+We need to have atleast one certificate authority for cluster.
+
+
+CA has its own pait of cets 
+ca.crt
+ca.key
+
+
+***** Generate certificates
+Tools
+- easyrsa
+- openssl
+- cfssl
+
+
+Openssl 
+Generate keys
+# opensll genrsa -out ca.key 2048
+
+Certificate signing request
+# openssl req -new -key ca.key -subj "/CN=KUBERNETES-CA" -out ca.csr
+
+Sign Certificate
+# openssl x509 -req -in ca.csr -signkey ca.key -out ca.crt
+
+- Client certiificates
+Admin:
+Generate keys
+# openssl genrsa -out admin.key 2048
+
+Certificate signing request
+# openssl req -new -key admin.key -subj "/CN=kube-admin" -out admin.csr
+
+Sign Certificates
+# openssl x509 -req -in admin.csr -CA ca.crt -CAkey -out admin.crt
+
+We can use the certs via API
+# curl https://kube-apiserver:643/api/v1/pods --key admin.key --cert admin.crt --cacert ca.crt   
+
+kube-apiserver
+- There are key and cert file options, where you can specify the server key. There ar other options to specify the peer certificates
+people call it
+- kubernetes
+- kubernetes.default
+- kubernetes.default.svc
+- kubernetes.default.svc.cluster.local
+
+Generate key
+# openssl genrsa -out apiserver.key 2048
+# openssl req -new -key apiserver.key -subj "/CN=kube-apiserver" -out apiserver.csr
+- To specify the alternate names
+# vi openssl.cnf
+[alt-name]
+DNS.1 = kubernetes
+DNS.2 = kubernetes.default
+DNS.3 = kubernetes.default.svc
+DNS.4 = kubernetes.default.svc.cluster.local
+
+# openssl req -new -key apiserver.key -subj "/CN=kube-apiserver" -out apiserver.csr -config openssl.cnf
+
+# openssl x509 -req -in apiserver.csr -CA ca.crrt -CAkey -out apiserver.crt
+
+
+**** View Certificate details
+Perform health check -check how cluster have been set-up?
+- Hardway
+# cat /etc/systemd/system/kube-apiserver.service
+
+- kubeadm
+# cat /etc/kubernetes/manifests/kube-apiserver.yaml
+
+
+(a) Kubeadm
+/etc/kubernetes/pki/apiserver.crt
+# openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text -noout
+start with name of certificate in subject section
+alternate names / valid date
+
+
+Inspect logs
+# journalctl -u etcd.service
+
+kubeadm
+# kubectl logs etcd-master
+
+for core components
+# docker ps -a
+# docker logs <container ID>
+
+
+***** Certificates API
+CA server
+- where it is located
+its just a pair of keys. These files needs to be protected and stored on server. 
+kuberntes has built in kubernetes API. 
+1. Create CertificateSigningRequest Object
+2. Review requests
+3. Approve requests
+4. Share certs to users
+
+# openssl genrsa -out jane.key 2048
+
+# openssl req -new -key jane.key -subj "/CN=jane" -out jane.csr
+
+generate base64 encoded text
+# cat jane.csr |base64
+
+Generate certificate signing request object
+# vi jane-csr.yaml
+apiVersion: certificates.k8s.io/v1beta1
+kind: CertificatesSigningRequest
+metadata:
+  name: jane
+spec:
+  groups:
+  - system: authenticated
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  request:
+      <base64encoded>
+
+certificate requests can be seen by administrators
+# kubectl get csr
+
+Approve CSR
+# kubectl certificate approve jane
+
+This generates a new certificate that can be shared with user
+# kubectl get csr jane -o yaml
+<generated certificate is part of output>
+
+As before, it is in base64 encoded. you need to decode it
+# echo "LSO..Qo" |base64 --decode
+
+
+Who does all of this?
+- All cert related operations are taken care by "Controller Manager". It has following controllers
+CSR-Approving
+CSR-Signing
+
+***** Practise test
+To check what group CSR requesting to 
+# kubectl get csr agent-smith -o yaml
+
+To delete CSR
+# kubectl delete csr agent-smith
+
+To reject CSR
+# kubectl certificate deny agent-smith
+
+
+***** kube-config
+
+Authenticate using API
+# curl https://my-kube-playground:6443/api/v1/pods --key admin.key --cert admin.key --cacert ca.crt
+
+Use cert files to authenticate for client queries
+# kubectl get pods --server my-kube-playground:6443 --client-key admin.key --client-certificate admin.crt --certificate-authority ca.crt
+
+Using these credentials everytime is tedious task hence move the credentials to kube-config file.
+# kubectl get pods --kubeconfig config
+
+By default kubectl looks for file called config under .kube under home directory. If you have config file, there is no need to specify the kubeconfig file explicitly.
+
+Format of kubeconfig file
+3 sections
+clusters - different environment - Development, Production etc
+users - user accounts (admin, dev user, prod user)
+context - define which user account is used for which cluster. For example - Admin@Production
+
+Example
+apiVersion: v1
+kind: Config
+clusters:
+- name: my-kube-playground
+  cluster:
+     certifiate-authority:
+     server: https://my-kube-playground:6443
+contexts:
+- name: my-kube-admin@my-kube-playground
+  context: 
+    cluster: my-kube-playground
+    user: my-kube-admin
+users:
+- name: my-kube-admin
+  user:
+    client-certificate: admin.crt
+    client-key: admin.key
+
+You can set the default context using "current-context" 
+apiVersion: v1
+kind: Config
+current-context: dev-user@google
+clusters:
+- name: my-kube-playground
+- name: development
+- name: production
+- name: google
+contexts:
+- name: my-kube-admin@my-kube-playground
+- name: dev-user@google
+- name: prod-user@production
+users:
+- name: my-kube-admin
+- name: admin
+- name: dev-user
+- name: prod-user
+
+Command to use and modify config
+
+View config details
+# kubectl config view
+
+Update current context
+# kubectl config use-context prod-user@production
+
+# kubectl config -h
+
+- Switch to particular namespace
+When you specify "namespace" under context section of config file, kubectl can take you to specific namespace when you use the context.
+
+Certificates in kubeconfig
+
+***** Practise test
+Use the config
+# kubectl config --kubeconfig=/root/my-kube-config use-context research
+
+
+**** API Groups
+What is kubernetes API?
+Example:
+check version
+# curl https://kube-master:6443/version
+
+Check PODS
+# curl https://kube-master:6443/api/v1/pods
+
+kubernetes APIs are divided into multiple groups based on purpose
+/metrics 
+/healthz - monitor health
+/version - check version
+/api - cluster fuctionality
+/apis
+/logs - integrating logs
+
+the APIs - /api and /apis are catagorized into
+- Core
+- Named
+
+Core - is where all core functionality exists such as
+namespaces
+events 
+bindings
+configmaps
+pods
+endpoints
+PV
+secrets
+rc
+nodes
+PVC
+services
+
+named - are organized for new apps
+/apps - v1 - deployment, replicasets, statefulsets
+/extenstion
+/networking.k8s.io - v1 - networkpolicies
+/storage.k8s.io
+/authentication.k8s.io
+/certificates.k8.io - v1
+
+
+To list all available APIs
+# curl http://localhost:6443 -k
+
+To authenticate yourself to get the APIs working
+# curl http://localhost:6443 -k --key admin.key --cert admin.crt --cacert ca.crt
+
+alternate option
+# kubectl proxy ( it will start serving from port 8001)
+- uses credentials/certs from kubeconfig file  to access cluster
+# curl http://localhost:8001 -k
+
+kube proxy and kubectl proxy are not equal
+
+
+**** Authorization
+- Required to set access authorizations to other users
+
+Authorization mechanisms
+ - Node
+ - ABAC
+ - RBAC
+ - webhook
+
+Node authorizers are for nodes like kubelet accessing other services
+
+ABAC (Attribute based authorization) - user access is based on permissions, this is created with the help of a policy file in a json format and pass this file to API server.
+
+RBAC - Role based access control - Instead of directly associating users and groups with set of permissions, we define a role. In this case a developer, we create a role based on permissions required and associate all users to the role.
+
+Webhook - have an external source to have authorization 
+
+there are other modes
+AlwaysAllow
+AlwaysDeny
+
+Modes are set using "--authotization-mode" option in kube-apiserver
+example
+"--authorization-mode=AlwaysAllow"
+
+setting multiple modes
+--authorization-mode=Node,RBAC,Webhook
+
+When set with multiple modes, the authorization is based on each mode in order.
+
+
+***** RBAC - Role based access control
+How to create a role?
+- using role definition file
+# vi developer-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: developer
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "get", "create", "update", "delete"]
+- apiGroups: [""]
+  resources: ["ConfigMap"]
+  verbs: ["create"]
+
+# kubectl create -f developer-role.yaml
+
+# vi devuser-developer-binding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: devuser-developer-binding
+subjects:
+- kind: user
+  name: dev-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: role
+  name: developer
+  apiGroup: rbac.authorization.k8s.io
+
+To limit user access to specific namespace
+
+# kubectl get roles
+# kubectl get rolebindings
+
+Check access
+# kubectl auth can-i create deployments
+# kubectl auth can-i delete nodes
+
+To impersonate
+# kubectl auth can-i create deployments --as dev-user
+
+To give a user access to specific pod
+# vi developer-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: developer
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "get", "create", "update", "delete"]
+  resourceNames: ["blue", "orange"]
+
+
+**** Cluster roles and Role bindings
+Nodes cant be associated to a namespace
+
+cluster scoped resources does not need namespace
+- nodes
+- PV
+- Clusterroles
+- Cluserrolebindings
+- certificatesigning requests
+- namespaces
+
+To see the resources that are namespace based
+# kubectl api-resources --namespaced=true
+# kubectl api-resources --namespaced=false
+
+Cluster roles - are for cluster scoped resources
+vi cluster-admin-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  nameL cluster-administrator
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["list", "get", "create", "delete"]
+
+# kubectl create -f cluster-admin-role.yaml
+
+To link role to object create clusterrolebinding
+vi cluster-admin-role-binding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBindinding
+metadata:
+  nameL cluster-admin-role-binding
+subjects:
+- kind: user
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: cluster-administrator
+  apiGroup: rbac.authorization.k8s.io
+
+# kubectl create -f cluster-admin-binding.yaml
+
+
+***** Image security
+Image name follows docker image naming convention.
+naming convention - nginx/nginx (user/account and image/repository)
+
+By default it references the default docker repo - docker.io
+
+gcr.io - google repository
+
+docker.io and gcr.io -> public repo
+
+Private repository
+
+To pass the credential to kubernetes to pull images from registry, we use secrets
+# kubectl create secret docker-registry regcred --docker-server=private-registry.io --docker-username=registry-user --docker-password=registry-password --docker-email=registry-user@org.com
+docker-registry - > is built in to store credentials
+
+Then specify secret inside pod definition file.
+# vi nginx-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+spec:
+  containers:
+  - name: nginx
+    image: private-registry.io/apps/internal-app
+  imagePullSecrets:
+  - name: regcred
+
+***** Security contexts
+When you run a container, you have an option to define certain standards
+For example, define userID
+# docker run --user=1001 ubuntu sleep 3600
+
+You can define security at container level or POD level. If you define security at container level, the security at container level will override the security of pod.
+
+To define security context
+vi security-context.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-pod
+spec:
+  containers:
+      - name: ubuntu
+        image: ubuntu
+        command: ["sleep", "3600"]
+        securityContext:
+          runAsUser: 1000
+          capabilities:
+            add: ["MAC_ADMIN"]
+
+
+
+***** Network Policy
+By default kubernetes is configured with "All Allow"
+
+Link network policy to pods to restrict connections.
+
+To create network policy
+- we use labels and selectors
+
+Example:
+PolicyTypes:
+- Ingress
+ingress:
+- from:
+  - podSelector:
+      matchLabels:
+        name: api-pod
+  ports:
+  - protocol: TCP
+    port: 3306
+
+
+vi network-policy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  nameL db-policy
+spec:
+  podSelector:
+    matchLabels:
+      role: db
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          name: api-pod
+    ports:
+    - protocol: TCP
+      port: 3306
+
+
+# kubectl create -f network-policy.yaml
+
+Network policies supported:
+- kube-router
+- Calico
+- Romana
+- Weave-net
+
+
+***** Developing network policies
+
+# vi db-policy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy  
+metadata:
+  name: db-policy
+spec:
+  podSelector:
+    matchLabels:
+      role: db
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          name: api-pod
+      namespaceSelector:
+          matchLables:
+            name: prod
+    - ipBlock:
+         cidr: 192.168.5.10/32
+    ports:
+    - protocol: TCP
+      port: 3306
+   egress:
+   - to:
+      - ipBlock:
+          cidr: 192.168.5.10/32
+      ports:
+      - protocol: TCP
+        port: 80

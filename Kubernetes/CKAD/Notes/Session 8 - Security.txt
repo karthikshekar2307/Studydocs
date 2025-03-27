@@ -1,0 +1,349 @@
+***** Authentication, Authorization and admission control
+- Security Primitives
+who can access
+files - username and password
+files - username and token
+certificates
+service accounts
+
+What can they do
+- rbac
+- Abac
+
+***** Authentication
+we can create and manage service accounts
+all user access managed by kube-apiserver
+
+Auth mechanisms
+- Static password file
+- static token file
+- certificates
+- Identity services
+
+create userlist in csv file 
+3 colums
+password
+isername
+userid
+
+define in  kube-apiserver.service
+--basic-auth-file=user-details.csv
+
+for kubeadm file - /etc/kubernetes/manifests/kube-apiserver.yaml
+
+To authenticate:
+# curl -v -k https://master-node-ip:6443/api/v1/pods -u "user1:password"
+
+We can also have token file
+--token-auth-file=user-token-details.csv
+
+
+***** Kubeconfig
+To authenticate to kubernetes cluster
+# curl https://my-kube-playground:6443/api/v1/pods --key admin.key --cert admin.crt --cacert ca.crt
+# kubectl get pods --server my-kube-playground:6443 --client-key admin.key --client-certificate admin.crt --certificate-authority ca.crt
+
+$HOME/.kube/config
+- clusters (Development, Production, Google)
+- contexts (admin@production, devuser@google, produser@production)
+- users (admin, devuser, produser)
+
+apiVersion:
+kind:
+clusters:
+contexts:
+users:
+
+we can use the current-context: dev-user@google
+
+# kubectl config view
+
+To change the current context
+# kubectl config use-context prod-user@production
+
+# kubectl config -h
+
+config to switch to namespace
+under context, in manigest, define namespace
+
+Use of certificate in config file
+---
+apiVersion
+
+
+**** API Groups
+# curl https://kube-master:6443/version
+
+API paths
+/version
+/metrics
+/healthz
+/logs
+/apis
+/api
+
+Apis responsible for cluster functonality
+- core
+- named
+
+# kubectl proxy
+# curl http://localhost:8001 -k
+
+kube proxy is not same to kubectl proxy
+
+
+***** Authorization
+- Once users get access, what can they do?
+
+Node Authorizer
+- Kubelet should be part of system node group, any request coming from group
+node authorizer provides access.
+
+ABAC - Attribute based access control
+we define the manifest file for each user and define the permissions
+in it.
+
+RBAC - Role based access control
+Instead of directly associating users with the permissions, we definea
+a role with set of permissions and then allocate all devs to the role
+
+To outsource the authorization mechanisms
+- Webhook:
+Open Policy Agent is a third party tool that decides if access needs to 
+be provided
+
+Authorization modes:
+AllwaysAllow
+AlwaysDeny
+
+DEfine it in kubeapi yaml
+--authoreization-mode=Node,RBAC,Webhook
+
+
+***** RBAC
+- How to create a role
+developer-role.yaml
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: developer
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "get", "create", "update", "delete"]
+----
+
+Next step: link the user to the role
+devuser-developer-binding.yaml
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: devuser-developer-binding
+subjects:
+- kind: User
+  name: dev-user
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: developer
+  apiGroup: rbac.authorization.k8s.io
+
+role and rolebindings falls under namespace scope
+
+How to check access if you have permisions for any objects
+# kubectl auth can-i create deployments
+
+As admin to impersonalte other user
+# kubectl auth can-i create deployments --as dev-user
+
+
+***** Cluster Roles
+roles and role bindings are namespaced
+
+namespaced:
+- pods
+- replicasets
+- jobs
+- deployments
+- services
+- secrets
+- roles
+- role bindings
+- configmaps
+- PVC
+
+clusterscoped:
+- nodes
+- PV
+- Cluster roles
+- Clustetr role bindings
+- Certificatesigning requests
+- namespaces
+
+cluster-admin-role.yaml
+-----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-administrator
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["list","get","create","delete"]
+
+Cluster-admin-role-binding.yaml
+----
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-admin-role-binding
+subjects:
+- kind: User
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: cluster-Administrator
+  apiGroup: rbac.authorization.k8s.io
+
+
+***** Admission Controllers
+- Is an advanced option to set security on how the cluster could be userid
+
+kubectl-authentication-authorization-admissioncontrollers-create pods
+
+There are number of admission Controllers
+- AlwaysPullimages
+- defaultstorageclass
+- Eventratelimit
+- namespaceexists
+there are many more
+
+There is another admission Controllers
+- NamespaceAutoProvision
+
+How to enable controlelrs
+# kube-apiserver -h | grep enable-admission-plugins
+
+Add below line to enable
+--enable-admission-plugins=NodeRestriction, NamespaceAutoProvision to
+kube-apiserver.service 
+or
+/etc/kubernetes.manifests/kube-apiserver.yaml (Kubeadm)
+
+
+***** Validating and Mutating Admission Controllers
+- Mutating admission Controllers
+That can change the request
+
+Validate the request to allow or deny
+
+To have our own adminssion controller
+- Mutating admission webhook
+- Validating admission webhook
+
+1. deploy admission webhook server
+2. create webhook configuration objects
+4. host it 
+- can be deployed as deployment, webhook service needs to created
+5. configuration admission webhook 
+- to Validate
+----
+apiVersion: admissionistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: "pod-policy.example.com"
+webhooks:
+- name: "pod-policy.example.com"
+  clientConfig:
+    service:
+      namespace: "webhool-namespace"
+      name: "webhook-service"
+    caBundle: "dfsdfsdf"
+  rules:
+    - apiGroups: [""]
+      apiVersions: ["v1"]
+      operations: ["CREATE"]
+      resources: ["pods"]
+      scope: "Namespaced"
+
+
+***** APIversions
+If apis are under v1 they are stable apiVersions
+we have other paths
+/v1alpha1
+/v1beta1
+
+Alpha - Beta - GA
+
+--runtime-config=batch/v1alpha1
+then restart apiservice
+
+
+***** API Deprecations
+One API group can support multiple apiVersions
+
+API deprecation policy rule #1
+- API elements may only be removed by incrementing the version of the API group
+
+Rule #2
+- API objects must be able to round-trip between API versions in a given release without information loss, with the exception of whole REST resources that do not exist in some versions.
+
+An API version in a given track may not be depecated until a new API version at least as stable is released.
+
+- Other than the most recent API versions in each track, older API versions must be supported after their announced deprecation for a duration of no less than:
+GA: 12 months or 3 releases (whichever is longer)
+Beta: 9 months or 3 releases (whichever is longer)
+Alpha: 0 releases
+
+- Prefereed API Version and the storage version for a given group may not advance until after a release has been made that supports bith the new version and the previous version
+
+
+***** Custom resource definition
+Controller runs in background and monitors objects
+
+CRD is where we define that we are going to make use of custom objects
+-----
+flightticket-custom-definition.yaml
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: flightticket.flights.com
+spec:
+  scope: Namespaced
+  group: flights.com
+  names:
+    kind: flightticket
+    singular: flightticket
+    plural: flighttickets
+    shortNames:
+      - ft
+  versions:
+    - name: v1
+      served: true
+      storage: true
+
+      schema:
+        openAPIV3schema:
+          type: object
+          properties:
+            from:
+              type: storing
+            to:
+              type: storing
+             number:
+               type: integer
+               minimum: 1
+               maximum: 10
+
+
+***** Custom Controllers
+controller running in loop and perform tasks
+
+git repo - sample-controller
+
+
+***** Operator Framework

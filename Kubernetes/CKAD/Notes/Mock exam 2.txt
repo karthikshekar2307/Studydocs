@@ -1,0 +1,193 @@
+1. Create a deployment called my-webapp with image:nginx, label tier:frontend and 2 replicas. Expose the deployment as a NodePort service with name front-end-service, port:80 and nodeport: 30083
+# kubectl create deployment my-webapp --image=nginx --replicas=2 --dry-run=client -o yaml > my-webapp.yaml
+# kubectl create -f my-webapp-yaml
+# kubectl expose deployment my-webapp --name frontend-service --type NodePort --port 80 --dry-run=client -o yaml > frontend.service
+apiVersion: v1
+kind: service
+metadata:
+  labels:
+    app: my-webapp
+  name: frontend=service
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+    nodePort: 30083
+  selector:
+    app: my-webapp
+  type: NodePort
+
+# kubectl apply -f frontend-service.yaml
+# kubectl get deployments
+# kubectl get svc
+
+2. Add a taint to the node node01 of the cluster. Use the specification below
+key: app_type, value: alpha and effect: NoSchedule
+create a pod called alpha, image: redis with toleration to node01
+# kubectl get nodes
+# kubectl taint node node1 app_type=alpha:NoSchedule
+# kubectl describe node
+# kubectl run alpha --image=redis --dry-run=client -oyaml > alpha.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: alpha
+  name: alpha
+spec:
+  tolerations:
+    - effect: NoSchedule
+      key: app_type
+      value: alpha
+# kubectl apply -f alpha.yaml
+# kubectl get pod -o wide
+
+3. Apply a label app_type=beta to node controlplane. Create a new deployment called beta-apps with image: nginx and replicas: 3. Set Node affinity to the deployment to place the pods 
+on controlplane only.
+# kubectl get node
+# kubectl label node controlplane app_type=beta
+# kubectl get node controlplane --show-labels
+# kubectl create deploy beta-apps --image=nginx --replicas=3 --dry-run=client -oyaml > beta-apps.yaml
+# vi beta-apps.yaml
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: app_type
+            operator: In
+            values:
+            - ["beta"]
+# kubectl apply -f beta-apps.yaml
+# kubectl get pods -o wide
+
+4. Create a new Ingress resource for the service: my-video-service to be made available at the url http://ckad-mock-exam-solution.com:30093/video. Create an ingress resource with host: ckad-mock-exam
+solution.com, path: /video
+Once set up, curl test of the URL from the nodes should be successful / HTTP 200
+# kubectl get service
+# kubectl create ingress ingress --rule="ckad-mock-exam-solution.com/video*=my-video-service:8000" --dry-run=client -oyaml > ingress.yaml
+# vi ingress.yaml
+# kubectl apply -f ingress.yaml
+
+5. We have deployed a new pod called pod-with-rprobe. This pod has an initial delay before it is ready. Update the newly created pod "pod-with-rprobe" with a readinessprobe using the 
+given spec
+httpGet path:/ready
+httpGet port: 8080
+# kubectl get pod pod-with-rprobe -oyaml > pod.yaml
+# vi pod.yaml
+spec:
+  containers:
+  - env:
+    - name: APP_START_DELAY
+      value: "180"
+    image: kodekloud/webapp-delayed-start
+    name: pod-with-rprobe
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 8080
+# kubectl replace -f pod.yaml --force
+
+6. Create a new pod called nginx1401 in the default namespace with the image nginx. Add a livenessprobe to the container to restart it if the command
+ls /var/www/html/probe fails. This check should start after a delay of 10 seconds and run every 60 seconds.
+# vi nginx1401.yaml
+apiVersion: v1
+kind: Pod
+metadata: 
+  name: nginx1401
+  namespace: default
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      livenessprobe:
+        exec:
+          command: ["ls /var/www/html/probe"]
+        initialDelaySeconds: 10
+        periodSeconds: 60
+
+# kubectl apply -f nginx1401.yaml
+
+
+7. Create a job called whalesay with image docker/whalesay and command "cowsay I am going to ace CKAD.
+completions: 10
+backofflimit: 6
+restartPolicy: Never
+# kubectl create job --image=docker/whalesay whalesay --dry-run=client -oyaml > whalesay.yaml
+# vi whalesay.yaml
+apiVersion: batch/v1
+kind: job
+metadata:
+  name: whalesay
+spec:
+  completions: 10
+  backofflimit: 6
+  template:
+    metadata:
+    spec:
+      containers:
+      - image: docker/whalesay
+        name: whalesay
+        command:
+          - sh
+          - -c
+          - "cowsay I am going to ace CKAD!"
+      
+# kubectl apply -f whalesay.yaml
+
+
+8. create a pod called multi-pod with two containers
+container1:
+name: jupiter, image: nginx
+container2:
+name: europa, image: busybox
+
+command: sleep 4800
+
+Environment variables:
+container1:
+type: planet
+container2:
+type: moon
+
+# vi multi-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multi-pod
+spec:
+  containers:
+    - name: jupiter
+      image: nginx
+      env:
+        - name: type
+          value: planet
+    - name: europa
+      image: busybox
+      command: ["/bin/sh", "-c", "sleep 4800"]
+      env:
+        - name: type
+          value: moon
+# kubectl apply -f multi-pod.yaml
+
+9. create a Persistent volume called custom-volume with size 50MiB reclaim policy: retain, access modes: ReadwriteMAny and hostPath: /opt/data
+# vi pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+   name: custom-volume
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    ReadWriteMany
+  volumeMode: Block
+  persistemtVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /opt/data
+
+# kubectl apply -f pv.yaml
+
+

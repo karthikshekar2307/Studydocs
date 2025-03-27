@@ -1,0 +1,45 @@
+Section 12 - Other topics
+--------------------------
+
+
+***** JSON Path
+- pase data from Json file
+
+$ - root element
+example
+$.car
+$.bus
+$.car.color
+
+$.vehicles.car
+
+
+**** Advanced kubectl commands
+
+- Large data sets
+100s of Nodes
+100s of PODs
+
+
+JsonPath Examples
+-----------------
+# kubectl get nodes -o=jsonpath='{.items[*].metadata.name}'
+
+# kubectl get nodes -o=jsonpath='{.items[*].status.nodeInfo.architecture}'
+
+# kubectl get nodes -o=jsonpath='{.items[*].status.capacity.cpu}'
+
+# kubectl get nodes -o=jsonpath='{.items[*].metadata.name} {.items[*].status.capacity.cpu}'
+
+Better formatting
+# kubectl get nodes -o=jsonpath='{.items[*].metadata.name} {"\n"} {.items[*].status.capcity.cpu}'
+
+# kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.capacity.cpu}{"\n"}{end}'
+
+# kubectl get nodes -o=custom-columns=NODE:.metadata.name
+
+# kubectl get nodes -o=custom-columns=NODE:.metadata.name ,CPU:.status.capacity.cpu
+
+# kubectl get nodes --sort-by=.metadata.name
+
+# kubectl get nodes --sort-by=.status.capacity.cpu

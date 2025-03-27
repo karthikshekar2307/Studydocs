@@ -1,0 +1,65 @@
+***** Overview
+- use cases
+backup and storate
+disaster recovery
+archive
+hybrid cloud storage
+
+object values are the content of the body
+- max. object size is 5TB
+- IF uploading more than 5GB, must use multi-part uploading
+
+- Metadata (list of text key/value pairs - system or user Metadata)
+- Tags (unicode key/value pair - up to 10) - useful for security/lifecycle
+- Version ID (if version is enabled)
+
+
+**** S3 - security
+- User based
+IAM Policies - which APO calls should be allowed fir a specific user from IAM
+
+- Resource based
+bucket policies - bucket wide rules from the S3 console - allows cross account
+object access control list (ACL) - finer grain (can be disabled)
+bucket access control list (ACL) - less common (can be disabled)
+
+Note: an IAM principal can access an S3 object if 
+The user IAM permissions ALLOW it OR the resource policy ALLOWS it
+And there's no explicit DENY
+
+Encryption: encrypt objects in Amazon s3 using encryption keys
+
+
+***** S3 replication
+CRR and SRR
+CRR - Cross region replication
+SRR - same region replication
+
+Asynchronous replocation
+- enable versioning
+
+Note:
+only new objects will be replocated
+existing objects can be replocated using S3 batch replication
+( This replicates existing objects and objects that failed replication)
+
+For DELETE operations
+can replicate delete markers from source to target (optional setting)
+Deletions with a Version ID are not replicated (to avoid malicious deletes)
+
+There is no chaining of replication
+If bucket 1 has replication into bucket 2, which has replication into bucket 3
+Then the objects created in bucker 1 are not replicted to bucket 3
+
+
+***** Storage classes
+Standard General purpose
+standard Infreqent access - for data that is less frequently accessed. but requires rapid access when needed
+One Zone-Inrefquent access
+glacier instant retrieval - minimum storage duration of 90 days
+Glacier felxible retrieval
+Galcier deep archive
+intelligent tiering - move between tiers
+
+11 9s durablility
+

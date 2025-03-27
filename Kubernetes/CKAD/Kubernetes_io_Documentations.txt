@@ -1,0 +1,16 @@
+***** Pods:
+https://kubernetes.io/docs/concepts/workloads/pods/
+https://kubernetes.io/docs/concepts/workloads/pods/ephemeral-containers/
+https://kubernetes.io/docs/tasks/configure-pod-container/share-process-namespace/
+
+- Important point
+initContainers
+ephemeral containers (for troubleshooting) - we need to enable share process namespace
+
+Stateful sets:
+https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
+
+Jobs:
+https://kubernetes.io/docs/concepts/workloads/controllers/job/
+
+

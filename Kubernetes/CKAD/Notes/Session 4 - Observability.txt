@@ -1,0 +1,125 @@
+***** Readiness probes
+- POD conditions
+Pod scheduled
+initialized
+containersReady
+Ready
+
+Ready - indicates apps are running
+
+how Kuberentes knows app is running
+
+Way to tie ready condition with actual status of app
+Readiness Probes:
+web application - HTTP test - /api/ready
+TCP Test - 3306 
+Exec command
+
+How to configure
+-----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simple-webapp
+  labels:
+    name: simple-webapp
+spec:
+  containers:
+  - name: simple-webapp
+    image: simple-webapp
+    ports:
+      - containerPort: 8080
+    readinessProbe:
+      httpGet:
+        path: /api/ready
+        port: 8080
+
+Different ways to define probe
+
+HTTP:
+----
+readinessProbe:
+  httpGet:
+    path: /api/ready
+    port:8080
+
+TCP:
+----
+readinessProbe:
+  tcpSocket:
+    port: 3306
+
+Exec:
+-----
+readinessProbe:
+  exec:
+    command:
+      - cat
+      - /app/is_ready
+
+
+if you know app delay
+readinessProbe:
+  httpGet:
+    path: /api/ready
+    port:8080
+initialDelaySeconds: 10
+periodSeconds: 5
+failureThreshold: 8
+
+
+***** Liveness Probes
+can be configured on cntainer to check if its heatly
+running or not. If it fails then Kubernetes will restart the pods
+
+HTTP test - api/heatlhy
+TCP test - 3306
+
+is configured in pod-definition.yaml
+
+liveness probe vs readinessProbe
+-------------------------------
+
+
+***** logging
+# kubectl logs -f event-simulator-pod - Stream logs
+
+if there are multiple containers
+# kubectl logs -f event-simulator-pod event-simulator (name of the container)
+
+# kubectl logs webapp-2 -c simple-webapp
+
+
+***** Monitoring
+- node level metrics
+Cpu
+mem
+disk
+
+- Pod level metrics
+Cpu
+mem
+disk
+
+- There is no built in monitoring solution
+
+Metrics servers
+- Prometheys
+- elastic stack
+- datadog
+- dynatrace
+
+Hapster - deprecated
+
+metrics server - one metrics server per cluster (aggregates and stores in memory)
+
+How are metrics generator
+- kubelet : has subcomponent called cAdvisor
+
+# minikube addons enable metrics-server
+
+# kubectl top node
+
+# kubectl top pod
+
+

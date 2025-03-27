@@ -1,0 +1,23 @@
+***** Helm Introduction
+- Package manager for kubernetes
+
+***** Install Helm
+Requirement
+- # kubectl
+k8s
+
+
+***** Helm Concepts
+# helm install release-name chart-name
+# helm install release-1 bitnami/wordpress
+
+# helm list - view installed packages
+
+# helm uninstall my-release
+
+# helm pull --untar bitnami/wordpress
+
+# ls wordpress
+
+# helm install release-4 ./wordpress
+

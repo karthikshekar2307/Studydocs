@@ -1,0 +1,76 @@
+Session 10 - Install kubernetes Kubeadm way
+-------------------------------------------
+
+***** Resources
+The vagrant file used in the next video is available here:
+
+https://github.com/kodekloudhub/certified-kubernetes-administrator-course
+
+Here's the link to the documentation:
+
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+
+
+***** Deploy with kubeadm - Provision VMs with Vagrant
+
+
+**** Solution - Installing kubernetes via kubeadm
+1. Install kubeadm package
+- Documentation page - kubernetes.io 
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+- Find image
+
+Update the apt package index and install packages needed to use the Kubernetes apt repository:
+# sudo apt-get update
+# sudo apt-get install -y apt-transport-https ca-certificates curl
+
+Download the Google Cloud public signing key:
+
+# sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+Add the Kubernetes apt repository:
+
+# echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+Update apt package index, install kubelet, kubeadm and kubectl, and pin their version:
+# sudo apt-get update
+# sudo apt-get install -y kubelet kubeadm kubectl
+# sudo apt-mark hold kubelet kubeadm kubectl
+
+# kubeadm version -o short
+
+# ssh node01
+<copy same commands to install kubeadm>
+
+
+2. check kubelet version
+# kubelet --version
+
+3. How many nodes are part of cluster
+# kubectl get nodes
+
+4. Bootstrap kubeadm
+
+5. Initialize cluster control-plane
+# kubeadm init
+make sure kubeconfig is copied to default directory
+<copy kubeadm join>
+
+if the command is lost
+# kubeadm token create --help
+# kubeadm token create --print-join-command
+
+6. join node01
+# ssh node01
+<paste the copied join command>
+# kubectl get nodes
+
+7. Install network plugin
+Set sysctl rules
+# sysctl net.bridge.bridge-nf-call-iptables=1
+# ssh node01
+# sysctl net.bridge.bridge-nf-call-iptables=1
+
+Deploy weave plugin
+# kubectl apply -f ......
+
+# kubectl get nodes

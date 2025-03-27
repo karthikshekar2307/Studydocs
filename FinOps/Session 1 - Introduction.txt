@@ -1,0 +1,7 @@
+**** Objectives of exam
+- Challenges of cloud
+- FinOps and FinOps principles
+- FinOps teams and motivation
+- FinOps Lifecycle
+- Terminology and the cloud bill
+

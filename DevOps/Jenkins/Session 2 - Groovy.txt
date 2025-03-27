@@ -1,0 +1,76 @@
+- Starts with pipeline and ends from pipeline (|)
+
+pipeline {
+    There are multiple stages
+    like:
+    - Build (any name can be given)
+}
+
+# checkout - build - test - package
+# Compile - We will convert the code from user readable to machine readable
+# will be compiling code from maven
+# sh "mvn complile" - command will run mvn compile
+
+# goal for testing = test
+
+# site reports - all vulnerabilities, problems
+
+If there is an error in stage1, the next stage will not be executed.
+
+How to choose reports
+pipelinesyntax: reports
+
+
+Final step - Convert code into package
+
+package - single executable file.
+
+
+pipeline {
+    agent any
+    stages {
+        stage('checkout'){
+           steps{
+            git url: "https://github.com/akshu20791/DevOpsClassCodes/"
+           }
+
+        }
+         stage('kar-compile'){
+            steps{
+              echo " we are compiling the code"
+              sh "mvn compile"
+            }
+         }
+         stage('kar-test'){
+            steps{
+              echo " we are testing the code"
+              sh "mvn test"
+            }
+         }
+         stage('kar-QA'){
+            steps{
+              echo " we are checking the quality of the code"
+              sh "mvn pmd:pmd"
+              recordIssues(tools: [pmdParser()])
+            }
+         }
+         stage('kar-package'){
+            steps{
+              echo " we are convert code to package"
+              sh "mvn package"
+            }
+         }
+
+    }
+}
+
+
+****** Automate the build whenever there is an update in GitHub 
+
+SourceCode polling: after certain duration make Jenkins to look for new updates
+
+Jenkins --> Pipeline --> Configure --> Poll SCM
+-----
+cron expression
+* * * * * 
+------

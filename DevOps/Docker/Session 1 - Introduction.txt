@@ -1,0 +1,25 @@
+Docker architecture
+-------------------
+
+# docker images
+# docker run -it --name karcontainer ubuntu /bin/bash
+
+Syntax of Dockerfile
+-----
+FROM ubuntu
+RUN echo "hello world" > testfile
+------+
+
+# docker build -t myimg .
+# docker images
+# docker run -it --name c01 mying /bin/bash
+
+Another example:
+FROM ubuntu
+RUN echo "hello world" > testfile
+RUN apt update -y
+RUN apt install apache2 -y
+COPY testfile2 /tmp
+
+
+testfile2 and docker in same present directory

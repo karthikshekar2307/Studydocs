@@ -1,0 +1,56 @@
+***** AWS CDK Concepts
+
+- CDK application: Top-level scope for your infrastructure code developed  via CDK
+- Stack: Corresponds to a Cloudformation stack managing a group of AWS resources in a CDK app.
+- Constructs: Basic building blocks of a CDL app, used to deploy one or more AWS resources
+
+There are 3 types of Constructs:
+1. L1 constructs: The lowest level construct type mapping clpoudformation resources types 
+one to one, automatically generated from cloudformation specs
+
+2. L2 constructs: represent at a higher level with convenient dfaults, reducing the need to know and configure all details. You can use the power of abstractions with instance methods and properties to work with resource efficiently.
+
+3. L3 constructs (CDK patterns): The highest level construct type bundling resources from multiple AWS 
+services to create a complete solution. You can also create L3 constructs to share with your colleagues
+as libraries in your programming language.
+
+AWS CDK tools
+- CDK toolkit: A command-line interface to initialize CDK apps, synthesize templates and deploy stacks 
+from them.
+- AWS toolkit for visual studio code: An open-source plugin for AWS applications on VS code with CDK explorer feature.
+
+
+***** Installing and configuring AWS CDK
+
+- For CDK deployment, you need at least one CDK environment consisting of an AWS account and a region to deploy the resources
+
+- Bootstrapping: Preparing an AWS region in your AWS account for CDK deployments by creating necessary resources like s3 bukets and IAM roles. The CDK bootstrap command is used to bootstrap a CDK environment.
+
+Install Nodejs
+# curl -fsSL https://fnm.vercel.app/install | bash
+# source ~/.bashrc
+# fnm use --install-if-missing 20
+# node -v
+# npm -v
+# sudo npm install -g aws-cdk
+# cdk --version
+# cdk help
+# cdk bootstrap 533267123582/ap-southeast-2 (This creates a CFN stack with IAM policies and required resources)
+
+
+***** Creating first CDK app
+CDK supported programming languages
+- Python
+- Typescript
+- Javascript
+- Java
+- C#
+- Go
+
+# mkdir first_app
+# cd first_app
+# cdk init 
+# cdk init sample-app --language python
+
+- Folder structure
+(a) .venv - cdk init command creates python virtual environment to isolate python version for your application from OS to avoid any version conflicts

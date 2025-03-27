@@ -1,0 +1,138 @@
+***** Session 2 - Deploying infrastructure with terraform
+------------------------------------------------------------
+
+***** Creating first EC2 instance with terraform
+When you want to launch a resource in AWS, there are three important considerations
+- How will you authenticate to AWS
+- Which region the resource needs to be launched
+- Which resource you want to launch
+
+registry.terraform.io --> Providers --> AWS
+
+There are multiple ways terraform authenticates to AWS
+- Static Way: Using Access and secret access keys 
+- Environment variables
+- Metadata service
+- IAM roles
+
+vi first_ec2.tf
+provider "aws" {
+    region  = "ap-southeast-2"
+    access_key = "AKIEHSDFKSDRUSDFSDFSD"
+    secret_key = "HDFSDFSDFSDFSDRWSEFSDFSDRSRWEREW"
+}
+
+resource "aws_instance" "web" {
+    ami = "ami-dsfsdfsdfSDFSd"
+    instance_type="t2.micro"
+}
+
+After saving the file,  you may run the command using below command
+# terraform init
+- Goes ahead and reads configuration and start downloading AWS related terraform pluggins.
+# terraform plan
+- Shows what terraform is planning to create
+# terraform apply 
+- Creates resources that are written in configuration.
+
+- Each provider has resources divided into multiple categories
+- Resources require certain set of arguements based on use-case
+
+
+***** Understanding resources and providers
+Providers
+- Terraform supports multiple providers
+- Depending on what type of infrastructure we want to launch, we have to use appropriate providers accordingly
+
+Initialization phase
+Upon adding a provider, it is important to run terraform init which in-turn will download plugins associated with the provider
+
+Resources
+Resources are the reference to the individual services which provider has to offer
+Example:
+- resource aws_instance
+- resource aws_alb
+- resource iam_user
+- resource digitalocean_droplet
+
+From 0.13 onwards, terraform requires explicit source information for any providers that are not HashiCorp-maintained, using a new syntax in the required_providers nested block inside the terraform configuration block.
+
+
+***** Providers and resources
+- Terraform supports multiple providers
+- Depending on what type of infrastructure we want to launch, we have to use appropriate providers accordingly
+
+
+***** Destroying infrastructure with terraform
+terraform destroy, allows us to destroy all the resources that are created within the folder
+
+# terraform destroy -target aws_instance.myec2
+- This will only remove the ec2 resources created, while other resources will continue to exist
+
+The -target option can be used to focus terraform's attention on only a subset of resources
+Combination of Resource type + local resource name
+
+When we do a terraform plan again, it will try adding resources, after removing resources, its assumed that instance is not required. If you do not need resource all together, we can remove the configuaration block all together
+
+Commenting resource and running terraform plan will destroy the resource
+
+
+***** Understanding Terraform state files
+# terraform plan
+
+State file
+- Terraform stores the state of the infrastructure that is being created from the TF files.
+- This state allows terraform to map real world resource to your existing configuration.
+
+
+***** Understanding desired and current state
+Desired state
+- Terraform's primary function is to create, modify and destroy infrastructure resources to match the desired state described in a terraform configuration.
+
+Current state
+- Current state is the actual state of a resource that is currently deployed
+
+Terraform tries to ensure that the deployed infrastructure is based on the desired state.
+If there is a difference between the two, terraform plan presents a description of the changes necessary to achieve the desired state.
+
+
+***** Challenges with current state on computed values
+Current state
+- Current state is the actual state of a resource that is currently deployed
+
+# terraform refresh
+
+# terraform plan
+
+Desired state
+- Terraform's primary function is to create, modify and destroy infrastructure resources to match the desired state described in a terraform configuration.
+
+
+***** Terraform provider versioning
+Provider Architecture
+- Once we created a tf file, terraform with help of provider pliggin interacts with the provider 
+- Provider plugin interacts with the server
+
+Overview of Provider versioning
+Provider plugins are released seperately from terraform itself
+They have different set of version numbers
+
+Explicitly setting provider version
+- During terraform init, if version arguement is not specified, the most recent provider will be downloaded during initialization.
+- For production use, you should constrain the acceptable provider versions via configuration, to ensure that new versions with breaking changes will not be automatically installed.
+
+There are multiple ways for specifying the version of a provider
+>=1.0 : Greater than equal to the version
+<=1.0 : Less than equal to the version
+±>2.0 : ANy version in the 2.x range
+>=2.10, <=2.30 : Any version between 2.10 and 2.30
+
+The lock files safeguards against any ad-hoc changes to the version specification.
+
+# terraform init -upgrade (in case if you want to proceed during presence of lock file)
+
+Dependency lock file
+- Terraform dependency lock file allows us to lock to a specific version of the provider
+- If a particular provider already has a selection recorded in lock file, terraform will always re-select that version for installation, even if a newer version becomes available.
+- You can override that behaviour by adding the -upgrade option when you run terraform init
+

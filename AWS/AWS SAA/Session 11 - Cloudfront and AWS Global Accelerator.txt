@@ -1,0 +1,50 @@
+***** CloudFront overview
+- 216 point of presence globally
+- DDOS protection
+
+Cloudfront origins
+- S3 bucket
+- Custom Origin  (HTTP)
+ALB
+EC2
+S3
+any HTTP backend
+
+CloudFront vs S32 cross region replication
+- CloudFront:
+Global edge network
+Files are cached for a TTL (may be a day)
+Great for static content that must be available everywhere
+
+- S3 cross region replication
+Must be setup for each region you want replication to happen
+files are updated in near real-time
+Read Only
+Great for dynamic content that needs to be available at low latency in few regions
+
+***** Cloudfront - ALB or EC2 as an origin
+
+***** Geo Restriction
+
+***** Cache invalidations
+- In case we updated the backedn orig9in, cloudfornt doesnot know about it and will only get the refreshed content after the TTL has expired
+- However, you can force an entire or partial cache refresh (thus by passing the TTL) by performing a Cloudfront invalidations
+- you can invalidate all files (*) or a special path (/images*)
+
+
+**** AWS Global accelerator
+Unicast IP vs Anycast IP
+
+Unicast IP - One server holds one IP address
+
+Anycast  IP: all instances have same IPs
+
+- Works with Elastic IP, EC2 instances, ALB, NLB, public or private
+- Consistent performance
+Intelligent routing to lowest latency and fast regional failover
+No issue with client cache (because the IP doesn't change)
+Internal AWS network
+- Health checks
+Global accelerator performs a health check of the applocartions
+helps make your application global (failover less than 1 minite for unhealthy)
+Great for disaster recovery

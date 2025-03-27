@@ -1,0 +1,18 @@
+***** Master-agent concept
+Agent servers - we will connect with Jenkins (machine where Jenkins is installed)
+
+
+To add new node from jenkins console
+Dashboard > Manage Jenkins > Nodes
+
+
+- Launch jenkins agent servers
+# apt update -y
+
+- Install jdk
+# apt install default-jdk -y
+
+# curl -sO http://192.168.0.36:8080/jnlpJars/agent.jar
+
+# java -jar agent.jar -jnlpUrl http://192.168.0.36:8080/computer/agent1/jenkins-agent.jnlp -secret dfc96ce88fae9e5d8f51f8843aca80e30fc513295756084b4f487302349c378a -workDir "/opt/build"
+

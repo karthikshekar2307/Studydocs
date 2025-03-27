@@ -1,0 +1,41 @@
+***** Horizontal vs vertical scaling
+
+***** Load balancing
+
+***** An introduction to distributed systems
+- Optimize process and increase thoughput using the same resource
+- Preparing beforehand during non-peak
+- Keep backups and avoud single points of failures
+- more resources
+- microservice architecture
+- distributed systems
+- load balancing
+- Decoupling
+- logging and metrics
+
+
+***** Single point of failure
+- More nodes
+- Master slave architecture
+- Multiple load balancers (gateways)
+- multiple IP resolving to same host
+- multiple regions
+
+ 
+ ***** Sharding
+ - Joins
+
+ Index for every Sharding
+
+ If shard fails - master-slave architecture
+
+ ***** Service discovery and heartbeats
+
+
+ **** Capacity planning and estimation
+
+ ***** Content delivery networks
+
+
+ ***** API Design goals
+    

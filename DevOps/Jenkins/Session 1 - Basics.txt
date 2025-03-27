@@ -1,0 +1,61 @@
+github ----> compile ---- Test  ------ QA ------
+
+
+Jenkins will pick up the code and give it to compile (maven), then to test and then to QA
+
+compiling is to convert user readable to machine convertable language.
+
+Jenkins - automate all the process of SDLC via Jenkins 
+
+Its an opensource tool.
+
+Comes with  GUI
+
+Made up of plugins
+
+****** Installing Jenkins
+# sudo apt-get update
+# sudo apt-get install default-jdk -y
+
+# sudo apt-get install maven -y
+
+Download and Install Jenkins package
+# curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+
+# echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+# sudo apt update
+# sudo apt install jenkins -y
+
+# service jenkins start
+
+The default jenkins installation runs on port 8080 and 8443
+
+Onetime password - /var/lib/jenkins/secrets/initialAdminPassword
+
+Jenkins
+(a) new-item - What job you need to execute
+- general - general settings of the job
+- Source code management - repository from where the code would be coming from
+- build triggers - what triggered this job to execute
+- Build environment  - tools/dependencies to run the job
+- Build step - what needs to be done in this job
+- post build actions - after build is done what needs to be executed.
+
+Build step - Execute shell (terminal of machine where jenkins is installed) puts output to console.
+
+At Job console/project window
+- status: status of the job
+- changes - all the changes would be recorded
+- workspace - clone of githb repository is created
+- Build now - to execute the job
+- confure - setting of the job
+- delete project - delete the project
+- rename - rename the project
+
+Groovy pipelines
+------------------
+- Used for automating various tasks of CICD pipelines. (derived from Java)
+
+github.com ----> code compile ----> code testing ----> code QA -----> package -----> deploy to Tomcat server
+

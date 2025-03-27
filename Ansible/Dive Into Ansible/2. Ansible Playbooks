@@ -1,0 +1,163 @@
+***** YAML
+
+
+***** Ansible playbooks, breakdown of sections
+- playbook example
+# YAML documents begin with the document separator ---
+
+# The minus in YAML this indicates a list item.  The playbook contains a list 
+# of plays, with each play being a dictionary
+-
+ 
+  # Hosts: where our play will run and options it will run with
+  hosts: centos
+  user: root
+
+  # Vars: variables that will apply to the play, on all target systems
+
+  # Tasks: the list of tasks that will be executed within the playbook
+  tasks:
+    - name: Configure a MOTD (message of the day)
+      copy:
+        src: centos_motd
+        dest: /etc/motd
+
+  # Handlers: the list of handlers that are executed as a notify key from a task
+
+  # Roles: list of roles to be imported into the play
+
+# Three dots indicate the end of a YAML document
+...
+
+Under target section, we can define various parameters, valid parameters include
+- Become
+- connection
+- gather_facts: the setup module being run for each hosts
+
+Another example of using content
+---
+tasks:
+    - name: Configure a MOTD (message of the day)
+      copy:
+        content: Welcome to CentOS Linux - Ansible Rocks
+        dest: /etc/motd
+---
+
+Using variables
+---
+# Vars: variables that will apply to the play, on all target systems
+  vars:
+    motd: "Welcome to CentOS Linux - Ansible Rocks\n"
+
+  # Tasks: the list of tasks that will be executed within the playbook
+  tasks:
+    - name: Configure a MOTD (message of the day)
+      copy:
+        content: "{{ motd }}"
+        dest: /etc/motd
+---
+- To pass the variables on command line
+# ansible-playbook motd_playbook.yaml -e 'motd="Testing the motd playbook\n"'
+
+Handlers: The list of handlers that are executed as a notify key from a task
+This will be executed at end of the all tasks if there is there are changes.
+---
+# Handlers: the list of handlers that are executed as a notify key from a task
+  handlers:
+    - name: MOTD changed
+      debug:
+        msg: The MOTD was changed
+---
+
+Using 'When' directive
+---
+# Hosts: where our play will run and options it will run with
+  hosts: linux
+
+  # Vars: variables that will apply to the play, on all target systems
+  vars:
+    motd_centos: "Welcome to CentOS Linux - Ansible Rocks\n"
+    motd_ubuntu: "Welcome to Ubuntu Linux - Ansible Rocks\n"
+
+  # Tasks: the list of tasks that will be executed within the playbook
+  tasks:
+    - name: Configure a MOTD (message of the day)
+      copy:
+        content: "{{ motd_centos }}"
+        dest: /etc/motd
+      notify: MOTD changed
+      when: ansible_distribution == "CentOS"
+
+    - name: Configure a MOTD (message of the day)
+      copy:
+        content: "{{ motd_ubuntu }}"
+        dest: /etc/motd
+      notify: MOTD changed
+      when: ansible_distribution == "Ubuntu"
+
+  # Handlers: the list of handlers that are executed as a notify key from a task
+  handlers:
+    - name: MOTD changed
+      debug:
+        msg: The MOTD was changed
+---
+
+Get more details from Setup module
+$ ansible all -i centos2, -m setup |more
+$ ansible all -i centos2,ubuntu2 -m setup |grep ansible_distribution
+
+# Tasks: the list of tasks that will be executed within the play, this section
+  #       can also be used for pre and post tasks
+  tasks:
+    - name: Copy 60-ansible-motd to /etc/update-motd.d
+      copy:
+        src: 60-ansible-motd
+        dest: /etc/update-motd.d/60-ansible-motd
+        mode: preserve
+      notofy: Debug, if there is a change
+
+  # Handlers: the list of handlers that are executed as a notify key from a task
+  handlers:
+    - name: Debug, if there is a change
+      debug:
+        msg: Change occurred
+
+
+***** Ansible Playbooks, Variables
+
+Using Directories for Hostvars and Groupvars
+- It is also possible to use directories for host and group variables
+in combination with a Yaml file
+
+- See revisions 15,16, and 17 folders where the existing vatianles have 
+been moved into host_vars and Group_vars folders
+
+- Hostvars use the directory structure:
+host_vars/hostame i.e, hostvars/ubuntu-c
+
+- Groupvars use the directory structure
+group_vars/group i.e, group_vars/ubuntu
+
+
+***** Ansible Playbooks, Facts
+$ ansible centos1 -m setup -a 'gather_subset=network' |more
+$ ansible centos1 -m setup -a 'gather_subset=!all,!min,network' | wc -l
+
+filter option to be used with keyword
+$ ansible centos1 -m setup -a 'filter=ansible_memfree_mb'
+
+ansible_facts: is the root that gather facts and stores variables
+Any module returning a dictionary of 'ansible_facts' is added to the root
+of the facts namespace.
+
+So, everything under 'ansible_facts' gets into variable namespace. (essentially
+you can ignore ansible_facts when making use if facts in your playbook)
+
+- Use of Custom facts
+Sometimes we might need to make use of custom facts to get information 
+not provided by setup module.
+(a) Can be written in any language
+(b) returns a JSON structure
+(c) (or) Returns an ini structure
+(d) By default, expects to use /etc/ansible/facts.d
+

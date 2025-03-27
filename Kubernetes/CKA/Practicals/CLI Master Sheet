@@ -1,0 +1,387 @@
+CLI Master Sheet
+-----------------
+
+******* Practicals - Scheduling
+1. Manual Scheduling
+
+# cat nginx3.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  nodeName: node02
+  containers:
+  - image: nginx
+    name: nginx
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}
+
+2. POD Binding
+apiVersion: v1
+kind: Binding
+metadata:
+        name: nginx
+target:
+  apiVersion: v1
+  kind: Node
+  name: node02
+
+3. Taint node
+# kubectl taint node kube-master app=red:NoSchedule
+node/kube-master tainted
+
+4. Remove Taint
+# kubectl taint node kube-master app=blue:NoSchedule-
+node/kube-master untainted
+
+5. POD Toleration
+apiVersion: v1
+kind: Pod
+metadata:
+        name: app-server
+        labels:
+                env: dev
+spec:
+        tolerations:
+                - key: "app"
+                  operator: "Equal"
+                  value: "red"
+                  effect: "NoSchedule"
+        containers:
+                - name: app-server
+                  image: nginx
+
+6. Label node
+# kubectl label node kube-master type=server
+node/kube-master labeled
+
+7. Node Affinity
+apiVersion: v1
+kind: Pod
+metadata:
+        name: webserver
+        labels:
+                tier: frontend
+spec:
+        containers:
+                - name: webserver
+                  image: nginx
+        affinity:
+                nodeAffinity:
+                        requiredDuringSchedulingIgnoredDuringExecution:
+                                nodeSeletorTerms:
+                                        - matchExpressions:
+                                                - key: size
+                                                  operator: In
+                                                    values:
+                                                          - Large
+
+7. Deployment with Nodeaffinity
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: red
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      run: nginx
+  template:
+    metadata:
+      labels:
+        run: nginx
+    spec:
+      containers:
+      - image: nginx
+        imagePullPolicy: Always
+        name: nginx
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/master
+                operator: Exists
+
+
+8. Setting resources
+pod-definition.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simple-webapp-color
+spec:
+  containers:
+    - name: simple-webapp-color
+      image: simple-webapp-color
+      ports:
+        - containerPort: 8080
+      resources:
+        requests:
+          memory: "1Gi"
+          cpu: 1
+
+9. Daemon-Set
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+        name: monitoring-agent
+        labels:
+          tier: all
+spec:
+        selector:
+                matchLabels:
+                        tier: all
+        template:
+                metadata:
+                        name: monitoring-agent
+                        labels:
+                                tier: all
+                spec:
+                        containers:
+                                - name: monitoring-agent
+                                  image: nginx
+
+
+10. static POD
+Identify the manifest file path
+# ps -aux | grep /usr/bin/kubelet
+# grep -i staticpod /var/lib/kubelet/config.yaml
+
+
+11. Multiple Schedulers
+
+  containers:
+  - command:
+    - kube-scheduler
+    - --address=127.0.0.1
+    - --kubeconfig=/etc/kubernetes/scheduler.conf
+    - --leader-elect=true
+    - --scheduler-name=my-custom-scheduler
+    image: k8s.gcr.io
+    name: kube-scheduler
+
+Create scheduler
+
+Next step: create Pod and define scheduler name
+vi pod-definition.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+  schedulerName: my-custom-scheduler
+
+  # kubectl get events
+
+
+Session 4 - Application Lifecycle management
+---------------------------------------------
+
+# kubectl create deployment nginx --image=nginx --replicas=2
+deployment.apps/nginx created
+
+# kubectl rollout status deployment nginx
+deployment "nginx" successfully rolled out
+
+#kubectl rollout history deployment nginx
+deployment.apps/nginx
+REVISION  CHANGE-CAUSE
+1         <none>
+
+# kubectl set image deployment/nginx nginx=nginx:1.9.1
+deployment.apps/nginx image updated
+
+# kubectl rollout history deployment nginx
+deployment.apps/nginx
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+
+# kubectl rollout undo deployment nginx
+deployment.apps/nginx rolled back
+
+#kubectl rollout history deployment nginx
+deployment.apps/nginx
+REVISION  CHANGE-CAUSE
+2         <none>
+3         <none>
+
+Commands and arguements
+
+# vi pod-definition.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu-sleeper-pod
+spec:
+  containers:
+    - name: ubuntu-sleeper
+      image: ubuntu-sleeper
+      args: ["10"]
+
+args option -> we are overriding CMD
+
+# vi pod-definition.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu-sleeper-pod
+spec:
+  containers:
+    - name: ubuntu-sleeper
+      image: ubuntu-sleeper
+      command: ["sleep2.0"]
+      args: ["10"]
+
+Enviroment variables:
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: env
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+    env:
+            - name: DEMO_GREETINGS
+              value: "Hello"
+
+
+Create configmap
+# kubectl create configmap envconfig --from-literal=name=value1
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+        name: envconfig2
+data:
+        APP_COLOR: Blue
+        APP_TRUE_COLOR: Red
+
+Create pod with configmap
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+    envFrom:
+            - configMapRef:
+                    name: envconfig
+
+
+Create Secrets
+# kubectl create secret generic mysecret --from-literal=username=user1 --from-literal=password=password
+secret/mysecret created
+
+Convert text to base64
+# echo -n 'user1' | base64
+dXNlcjE=
+
+
+vi secrets.yaml
+kind: Secret
+metadata:
+        name: mysecret2
+data:
+        User_Name: dXNlcjE=
+        Password: dXNlcjE=
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: nginxsecret
+spec:
+  containers:
+  - image: nginx
+    name: nginxsecret
+    envFrom:
+            - secretRef:
+                    name: mysecret2
+
+Init Container
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    command: ['sh', '-c', 'echo The app is running! && sleep 3600']
+  initContainers:
+  - name: init-myservice
+    image: busybox
+    command: ['sh', '-c', 'git clone <some-repository-that-will-be-used-by-application> ; done;']
+
+
+***** Cluster maintenance
+To drain the node
+# kubectl drain node-1
+
+To regain access to the node after it comes back, we need to "uncordon" the node
+# kubectl uncordon node-1
+
+Marks the node unschedulable
+# kubectl cordon node-2
+
+# apt-get upgrade -y kubeadm=1.12.0-00
+# kubeadm upgrade apply v1.12.0
+
+upgrade kubelet
+# apt-get upgrade -y kubelet=1.12.0-00
+# systemctl restart kubelet
+
+To upgrade nodes
+- drain node one by one
+- upgrade kubeadm, kubelet
+# apt-get upgrade -y kubeadm=1.12.0-00
+# apt-get upgrade -y kubelet=1.12.0-00
+# kubeadm upgrade node config --kubelet-version v1.12.0
+# systemctl restart kubelet
+
+
+Backup and restore
+# kubectl get all --all-namespaces -o yaml > all-deploy-services.yaml
+
+Since our ETCD database is TLS-Enabled, the following options are mandatory:
+--cacert                                                verify certificates of TLS-enabled secure servers using this CA bundle
+--cert                                                    identify secure client using this TLS certificate file
+--endpoints=[127.0.0.1:2379]          This is the default as ETCD is running on master node and exposed on localhost 2379.
+--key                                                      identify secure client using this TLS key file
+
+
+ sudo ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key snapshot save ~/snapshot.db
+
+***** Security
+
+
+kubeconfig
+Update current context
+# kubectl config use-context prod-user@productio
+
+

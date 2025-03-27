@@ -1,0 +1,231 @@
+****** Introduction to Docker storage
+Two concenpts
+- Storage drivers
+- Volume drivers
+
+
+***** Docker storage
+File systems
+- creates below folder strictures
+/var/lib/docker
+aufs
+containers
+image
+volumes
+
+How docker file stores 
+- layered architectures
+
+To persist data - add volume to container
+# docker volume create data_volume
+creates /var/lib/docker/volumes/data_volume
+
+# docker run -v data_volume:/var/lib/mysql mysql
+
+# docker run -v data_volume2:/varlib/mysql mysql
+- this automatically create volume
+
+If data on external volume
+# docker run -v /data/mysql:/var/lib/mysql mysql
+- this is called bind mount
+
+-v = old style
+--mount = new version
+# docker run --mount type=bind,source=/data/mysql,target=/var/lib/mysql mysql
+
+Docker uses storage drivers for layered archotecture
+- aufs
+- zfs
+- brtfs
+- device mapper
+- overlay
+- overlay2
+
+***** Volume driver pluggins in docker
+volumes are not handles by storage drivers
+
+volume pluggins
+- local
+
+otheres
+- local
+- Azure file storage
+- digital ocean block storage
+- flocker
+- gce-docker
+
+For using the AWS volume driver (rexray)
+# docker run -it --name mysql --volume-driver rexray/ebs --mount src=ebs-vol,target=/var/lib/mysql mysql
+
+
+***** Persistent volumes in Kubernetes
+Volumes in kubernetes
+
+We attach volume to pod
+
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: random-number-generator
+spec:
+  containers:
+  - image: alpine
+    name: alpine
+    command: ["/bin/sh","-c"]
+    args: ["shuf -i 0-100 -n 1 >> /opt/number.out;"]
+    volumeMounts:
+    - mountpath: /opt
+      name: 
+  volumes:
+  - name: data-volume
+    hostPath:
+      path: /data
+      type: Directory
+
+
+If its in AWS ebs
+---
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: random-number-generator
+spec:
+  containers:
+  - image: alpine
+    name: alpine
+    command: ["/bin/sh","-c"]
+    args: ["shuf -i 0-100 -n 1 >> /opt/number.out;"]
+    volumeMounts:
+    - mountpath: /opt
+      name: data-volume
+  volumes:
+  - name: data-volume
+    awsElasticBlockStore:
+      volumeId: <volume-id>
+      fsType: ext4
+
+
+***** Persistent volumes
+Manage storage centrally
+A persistent volumes are clusterwide storage
+users select portion of storage via persistent storage claims
+
+ReadOnlyMany
+ReadWriteOnce
+ReadWriteMany
+
+----
+apiVersion: v1
+kind: Pod
+metadata: 
+  nameL pv-vol1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  hostPath:
+    Path: /tmp/data
+
+For AWS:
+-------
+apiVersion: v1
+kind: Pod
+metadata: 
+  nameL pv-vol1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  awsElasticBlockStore:
+    volumeID: <volume-id>
+    fsType: ext4
+
+
+***** Persistent Volume claims
+Admin  crreates pv
+user creates Pvc
+
+kuberenetes tries to match below while allocating persistent volume claims
+- Sufficient capacity
+- Access modes
+- Volume modes
+- Storage class
+
+we still can use labels and nodeSelectorTerms
+
+----
+apiVersion: v1
+kind: PersistentVolumeClaims
+metadata:
+  name: myclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+-----
+
+persistentVolumeReclaimPolicy: Delete/retain/recycle
+
+***** Using PVCs in Pod
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: myfrontend
+      image: nginx
+      volumeMounts:
+      - mountPath: "/var/www/html"
+        name: mypd
+  volumes:
+    - name: mypd
+      persistentVolumeClaim:
+        claimName: myclaim
+
+----
+
+***** Storage class
+2 types of provisioning
+- Static provisioner
+- Dynamic provisioner
+
+sc-definition.yaml
+---
+apiVersion: storage.k8s.io/v1
+
+
+***** Stateful sets
+- similar to deployments, but pods are created in sequential order
+- assign original index
+- all pods gets sequential names
+- maintain sticky identity
+
+In the manifest, we usually create it like deployments
+
+imperative commands
+# kubectl create -f statefulset-definition.yaml
+# kubectl scale statefulset mysql --replicas=5
+# kubectl scale statefulset mysql --replicas=3
+# kubectl delete statefulset mysql
+
+stateful deletes the pods in reverse order
+
+"podManagementPolicy: parallel" - to instruct pods to be created in parallel, this needs to be defined in manifest
+
+
+***** Headless services
+- normal service but no IP
+
+podname.headless-servicename.namespace.svc.cluster-domain.example
+
+mysql-0.mysql-h.default.svc.cluster.local
+
+------

@@ -1,0 +1,161 @@
+***** Azure Storage services overview
+
+- Different types of data and requirements
+Relational, non-relational/No-SQL, datasheets, images, videos, backups
+Storage, access, security, availability, latency, processing, backups
+
+- Different types of data service
+Azure Blobs: text and binary data
+Azure files: Managed file shares (SMB protocol)
+Azure queues: Messaging
+Azure Tables: NoSQL Store
+
+- features
+Durable and highly available - redundancy across dataacenters and regions
+secure - all data encrypted by default
+scalable - massively scalable
+managed - azure handles hardware maintenance, updates and critical issues for you
+accessible - accessible from anywhere in the world over http or https
+client libraries are avaialble in all languages
+support scripting in powershell or azure CLI
+
+
+***** Data redundancy options
+- Protect your data from hardware failures, network or power outages, and massive natural disasters
+- Even in the event of a failure, redundanct ensures your storage account's availability and durability
+- Trade offs between lower costs and higher availability
+
+- Redundancy in the primary region
+locally redundant storage (LRS) - three synchronous copies in same data center)
+Zone-redundancy storage (ZRS) - three synchronous copies in three availabilty zones (AZs)
+
+- Redundancy in secondary region
+Geo-redundant storage (GRS) - LRS + Asynchronoys copy to secondary region()
+Geo-Zone-redundant storage (GZRS)
+
+- With GRS an GZRS, the data in the secondary region isn't available for read or write access unless there is a failover
+to the secondary region.
+
+- For read access to teh secondary region, configure your storage account to use
+Read-access geo-redundant storage (RA-GRS)
+Read access geo-zone redundacnt storage (RA-GZRS)
+
+
+***** Blob storage (binary large object)
+- Blob
+Any type or format
+Text, images, audio, video, excel, backup files
+
+- Use cases
+Storing files for shared access
+video and audio straming
+storing data for analysis (data lake Gen2)
+Writing to the log file
+Storing data for disaster recovery, backup and archiving
+
+- flat structure
+
+Three types of blob storage
+
+- Block blobs
+For large objects that does not use random read and write operations files that are read from beginning to enabled
+Such as media files or image files for websites
+
+- Page blobs
+Optimized for random read and write operations
+Provide durable disks for Azure Virtual machines (Azure VMs)
+
+- Append Blobs
+Optimized for append operations e.g, logs
+When you modify an append blob, blocks are added to the end of the blob only
+Updating or deleting of existing blocks is not supported
+For example, you might write all of your trace logging to the same append blob for an application running on multuple VMs
+
+
+***** Storage service endpoint
+
+
+***** Azure storage performance tiers
+- Standards
+- Premium
+
+(a) Standard
+- Backed by magnetic drives
+- Support - all storage account
+- Optimized for high capacity and high throughput
+- provides the lowest cost per GB
+- Best for applications that require bulk storage or where data is accessed infrequently
+Example: Backup and DR datasets, media, pictures, videos
+
+(b) Premium
+- Backed by SSDs
+- Good for vrirtaul machines and workloads that need low latency and high I/O perfornmance
+- Examples: transactional databasesm big data analysis, IOT, AI or Multiple
+- Block blob: Best for high transactional rated or low storage latency
+- File shares: Best for enterprise or high performance applications that need to scale
+- Page blobs: best for random read and write operations
+
+
+***** Azure Table storage
+- No SQL key-value storage
+- all items are referrdd to as rows and filds known as colums
+- all rows in a table must have a key
+- No concept of repaltions, stored procedures, secondary indexes or foreing keys
+- data will usually be denormalized
+- To help ensure faset access, azure table storage splits a table into partitions
+- Support very large volume of data
+- Consider cosmos DB for new development
+- Advantages
+Its simpler to scale
+a table can hold semi-structured data
+No complex relationships
+Data insertion and retrieval is faset
+- Good to use for
+Storing TBs of structired data capable of serving web scale applications
+Storign datansets that dont requre complex join, foreign jeys or stored proceedures and that can be denormatlized for fast access
+capturing event logging and performance monitoring data.
+
+
+***** Azure Queue strorage
+- Store large number of messages
+- Access messages via authentuacatd calls using HTTP or https
+- May contain millins of messages, up to the total capacity limit of a storage account
+- Queues are commonly used to create a backlog of work to process asynchronously
+
+
+***** Azure file share storage
+- Enables you to create files shared in the cloud, and access these file shares from anywhere with an internet
+connection
+- Mounted concrrently by cloud or on-premises deployments
+- Accessible from Windows, linux and macOS clients
+- Accessible server message (SMB) protocol or network  file system (NFS protocol)
+- Azure files ensures the data is encrypted at rest, and the SMB protocol ensures the data is encrypted in transit.
+- Use cases
+replace or supplement on-premises file servers
+share application settings
+Dev/Test/Debug
+- Key benefits
+Shared access: Replaces on-premises file shares with Azure file shares without application compatibility issues
+Fully managed: Azure will manage hardware or an macOS
+Resiliency: Yoy don't have to deal with local power and network issues
+
+
+***** Disk storage
+- VMs uses disks as a place to store an OS, applications and data in Azure
+- One virtual machine can have one OS disk and multiple data disk but one data disk can obly be link with one VM
+- Both the OS disk and the data disk are virtual hard disks (VHDs) stored in Azure storage account
+- The VHDs used in Azure is .vhd files stored as page blobs in a standard or premium storage account in azure
+
+Unmanaged disks: we can create a storage account and specify it when we create the disk
+- Not recommended, previous unmanaged disks should migrate to managed disk
+
+Managed disk
+- Azure creartes and manages storage accounts in the background
+- we dont have to worry abot scalability issues
+- Azure created and manages the disk for us based on the size and perforance tier we specify
+
+Managed disk types"
+- Standard HDD: backup, non-critical, infrequent access
+- Standard SSD: lightly used production applications or dev/test environments
+- Premium SSH disks: Super fase and high performance, very low latency, recommended for production and performance sensitive workloads
+- Ultra disks (SSD): for most demanding IO-intensive workloads such as SAP HANA, top tier databses (for example, SQL, Oracle, and other)

@@ -1,0 +1,312 @@
+Session 7 - Storage
+--------------------
+
+***** Docker Storage
+Storage Drivers
+Volume Drivers
+
+- How docker stores data on local file system
+Creates folder structure under - /var/lib/docker. There are various folders under it called
+- aufs
+- containers
+- images
+- volumes
+
+All files related to containers are stored in containers folder and files related to images are stored in images folder.
+Any volumes contained by docker container are created under volumes folder.
+
+Layered architecture - When docker build images it builds in layered architecture. Each line in the docker file creates a new layer in docker image, 
+just changes from previous layer.
+
+Example:
+vi Dockerfile
+FROM Ubuntu
+RUN apt-get update && apt-get -y install python
+RUN pip install flask flask-mysql
+COPY . /opt/source-code
+ENTRYPOINT FLASK_APP=/opt/source-code/app.py flask
+run
+
+# docker build Dockerfile -t mumshad/my-custom-app
+
+Each layer stores the changes from previous layer, it reflected in size as well
+
+All of the below layers are created by docker build command, to build final docker image.
+Layer 5 - Base Ubuntu layer
+Layer 4 - Source code
+Layer 3 - Changes in pip packages
+Layer 2 - Changes in apt packages
+Layer 1 - Base Ubuntu Layer
+
+Once the build is complete, we can't modify these layers. They are read-only.
+
+Docker build creates a new writable layer
+Layer 6 - Container layer
+
+The life od the layer is until container is alive.
+
+The image layer is shared across all other containers using this image.
+
+Copy-On-write : When we try to modify a code which is in image layer, docker copies the code to read write layer.
+
+If we wish to persist the data from container layer. We can add persistent volume
+1. Create persistent volume
+# docker volume create data_volume
+- A new volume will be created under - /var/lib/docker/volumes/data_volume
+
+After this, when we run docker run command, we can mount this volume under docker container under reasd/write layer with -v option.
+# docker run -v data_volume:/var/lib/mysql mysql
+- This will create a new container and mount the volume under /var/lib/mysql directory.
+
+even if container is deleted the data and volume will exist.
+
+# docker run -v data_volume2:/var/lib/mysql mysql
+
+If there are data on another volume
+# docker run -v /data/mysql:/var/lib/mysql mysql
+
+New way to mount
+# docker run --mount type=bind,source=/data/mysql,target=/vvar/lib/mysql mysql
+
+Docker uses storage drivers for layered architecture. Some of the common storage drivers are:
+- AUFS
+- ZFS
+- BRTFS
+- Device Mapper
+- Overlay
+- Overlay2
+
+
+***** Volume driver plugins in Docker
+- Volumes are not handled by Storage drivers. Volumes are handled by Volume driver plugins
+Default volume driver plugin - Local
+
+There are many other volume drivers
+- Azure file storage
+- Convoy
+- DigitalOcean block storage
+- Flocker
+- gce-docer
+- GlusterFS
+- NetApp
+- RexRay
+- Portworkx
+- VMware Vsphere storage
+
+
+**** Container storage Interface (CSI)
+Kubernetes now supports all other container runtime engines - Container runtime engine.
+CNI - Container networking interface to support all netorking solutions.
+
+CSI looks like
+- It implements RPC (Remote proceedure calls) that will be called by container orchestrator and these must be implemented by storage drivers. 
+For example - CSI says, When a POD is created, and requires a volume, the container orchestrator should call RPC and pass the details such as volume name. The storage driver must implement this RPC and handle that request and provision new volume on storage array and return the results of the operation.
+
+Similarly, container orchestrator should call delete volume RPC when a volume needs to be deleted and the storage driver should implement the code to decommission volume from array when call is made. And specification details exactly what parameters must be sent by the caller what should be received by solution and what error code should be exchanged.
+
+
+***** Volumes
+Docker containers are meant to be transient in nature. which means, they are meant to last only for short period of time. They are called upon when they want to process data.
+Even if container is deleted, data processed by it remains.
+
+Pods are transient like docker.
+
+Volumes and mounts
+vi pod-definition.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: random-number-generator
+spec:
+  containers:
+  - image: alpine
+    name: alpine
+    command: ["/bin/sh","-c"]
+    args: ["shuf -i 0-100 -n 1 >> /opt/number.out;"]
+    volumeMounts:
+    - mountPath: /opt
+      name: data-volume
+  volumes:
+  - name: data-volume
+    hostPath:
+      path: /data
+      type: Directory
+
+
+For using AWS EBS volumes
+volumes:
+- name: data-volume
+  awsElasticBlockStore:
+    volumeID: <volume-id>
+    fsType: ext4
+
+
+****** Persistent volumes
+To manage storage centrally, manage a large storage and carve out storage from large volume for PODS - Persistent volume
+
+To create Persistent volume.
+vi pv-definition.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-vol1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  hostPath:
+    path: /tmp/data
+
+
+# kubectl create -f pv-definition.yaml
+# kubectl get persistentvolumes
+
+To replace the host path to EBS
+awsElasticBlockStore:
+    volumeID: <volume-id>
+    fsType: ext4
+
+
+- Access modes
+(a) ReadOnlyMany
+(b) ReadWriteOnce
+(c) ReadWriteMany
+
+
+***** Persistent volume claims
+- To make storage available to a node.
+
+Persistent Volumes and Persistent Volume claims are two different objects in kubernetes namespace.
+
+Administrator creates persistent volumes and user creates persistent volume claims to use storage.
+
+Once the persistent volume claims are created, kubernetes maps the claims with persistent volumes and properties set on the volumes.
+
+Every persistent volume claims are bound to one persistent volumes. During binding process, kubernetes tries to find a persistent volume that has sufficient capacity rquested by claims and any other requested properties such as access modes, volume modes and storage class.
+
+A smaller claims may be binded to larger volumes if all the criterias are matching.
+
+There are one to one binding between claims and volumes and no other claims can utilize remaining storage volume.
+
+If there are no persistent volume, the persistent volume claims will be in pending state until new volumes are available.
+
+# vi pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+
+
+# kubectl create -f pvc-definition.yaml
+# kubectl get persistentvolumeclaims
+
+To delete PVC
+# kubectl delete persistentvolumeclaim myclaim
+
+Default policy:
+PersistentVolumeReclaimPolicy: Retain
+
+Even of claim is deleted, volume will be retained
+
+
+***** Using PVCs in PODs
+Once you create a PVC use it in a POD definition file by specifying the PVC Claim name under persistentVolumeClaim section in the volumes section like this:
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+spec:
+  containers:
+    - name: myfrontend
+      image: nginx
+      volumeMounts:
+      - mountPath: "/var/www/html"
+        name: mypd
+  volumes:
+    - name: mypd
+      persistentVolumeClaim:
+        claimName: myclaim
+
+
+The same is true for ReplicaSets or Deployments. Add this to the pod template section of a Deployment on ReplicaSet.
+
+Reference URL: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#claims-as-volumes
+
+
+***** Practise tests
+(a) The application stores logs at location /log/app.log. View the logs.
+You can exec in to the container and open the file:
+kubectl exec webapp -- cat /log/app.log
+
+(b) to get reclaim policy
+# kubectl get pv
+NAME     CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                 STORAGECLASS   REASON   AGE
+pv-log   100Mi      RWX            Retain           Bound    default/claim-log-1                           15m
+
+
+***** Application Configuration
+
+***** Storage Class
+Static provisioning:
+
+With storage class, you can have automatic provisioning of volumes (Dynamic prosioning)
+
+Instead of creating PV definition file, we create SC definition
+sc-definition.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: google-storage
+provisionier: kubernetes.io/gce-pd
+
+Then define the storage class name in pvc definition file
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: google-storage
+  resources:
+    requests:
+      storage: 500Mi
+
+Then update POD definition
+apiVersion: v1
+kind: Pod
+metadata:
+  name: random-number-generator
+spec:
+  containers:
+  - image: alpine
+    name: alpine
+    command: ["/bin/sh","-c"]
+    args: ["shuf -i 0-100 -n 1 >> /opt/storage"]
+    volumeMounts:
+    - mountPath: /opt
+      name: data-volume
+    volumes:
+    - name: data-volume
+      persistentVolumeClaim:
+        claimName: myclaim
+
+
+With storage class you can specify additional options
+sc-definition.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: google-storage
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-standard [ pd-standard | pd-ssd ]
+  replication-type: none [none | regional-pd ]

@@ -1,0 +1,68 @@
+***** Placement groups
+- Sometimes you want control over the EC2 instance placement strategy
+- That strategy can be defined using placement groups
+- When you create a placement group, you specify one of the following strategies for the group:
+(a) cluster: Cluster instacnces into a low-latency group in a single availability zone
+(b) Spread: spreads instances across underlying hardware (max 7 instacnes per group per AZ) - Critical
+applications
+(c) partition: spreads instances across many different partitions (which rely on different sets of racks)
+within an AZ. Scales to 100s of EC2 instances per group (Hadoop, Cassandra, kafka)
+
+- Cluster: (placement group cluster low latency 10Gbps network) 
+*pros: Great network (10 Gbps bandwidth between instances)
+*cons: If the rack fails, all instances fail at the same time
+*Use case:
+Bigdata job that needs to complete fast
+Application that needs extremely low latency and high network throughput
+
+- Spread: All instances are on different hardware
+*Pros:
+Can span across multiple AZ
+Reduce risk is simultanous failure
+Ec2 instances are on different physical hardware
+*Cons:
+Limited to 7 instances per AZ per placement group
+*Usecase
+Application that needs to maximize high availability
+Critical applications where each instance must be isolated from failure from each other.
+
+- partition
+Multiple partitions across AZ, each partition can have multiple EC2 instances. 
+Partitions are collections of EC2 instacnes
+Up to 7 partitions per AZ
+Can span across multiple AZs in same region
+Up to 100s of EC2 instances
+The instances in a partition do not share racks with the instances in the other partitions
+A partition failure can affect many EC2 but won't affect other partitions
+EC2 instances get access to the partition information as metadata
+* Use-cases: HDFS, HBase, Cassandra, kafka
+
+
+***** ENI (Elastic Network Interfaces)
+- Logical component in a VPC that represents a virtual network Card
+- The ENI can have the following attributes:
+Primary private IPv4, one or more secondary IPv4
+One Elastic IP (IPv4) per private IPv4
+One Public IPv4
+One or more security groups
+A MAC address
+- You can create ENI independently and attach them on the fly (move them) on EC2 instances for failover
+- Bound to specific AZ
+
+
+***** EC2 Hibernate
+- Introducting EC2 Hibernate:
+The in-memory (RAM) state is preserved
+The instance boot is much faster (the OS is not stopped / restarted)
+Under the hood: the RAM state is written to a file in the root EBS volume
+The root EBS volume must be encrypted
+
+- Use cases:
+Long-running processing
+Saving the RAM state
+Services that take time to initialize
+
+* An instance can not be hibernated more than 60 days
+
+
+

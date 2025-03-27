@@ -1,0 +1,183 @@
+Session 5 - Practicals
+----------------------
+
+**** OS Upgrade
+
+To drain the node
+# kubectl drain node-1
+
+To regain access to the node after it comes back, we need to "uncordon" the node
+# kubectl uncordon node-1
+
+Marks the node unschedulable
+# kubectl cordon node-2
+
+***** Kubernetes releases
+
+To get versions
+# kubectl get nodes (view the version)
+
+
+***** Cluster Upgrade process
+How upgrade is done
+kubeadm has an upgrade command
+# kubeadm upgrade plan
+(kubeadm does not install or upgrade kubelet)
+- kubeadm tool must be upgraded before update
+
+# apt-get upgrade -y kubeadm=1.12.0-00
+# kubeadm upgrade apply v1.12.0
+
+upgrade kubelet
+# apt-get upgrade -y kubelet=1.12.0-00
+# systemctl restart kubelet
+
+To upgrade nodes
+- drain node one by one
+- upgrade kubeadm, kubelet
+# apt-get upgrade -y kubeadm=1.12.0-00
+# apt-get upgrade -y kubelet=1.12.0-00
+# kubeadm upgrade node config --kubelet-version v1.12.0
+# systemctl restart kubelet
+
+***** Demo
+"Search for Kubernetes upgrade"
+
+# kubectl get nodes
+
+# kubeadm token list
+
+# kubectl get pods -A (To see all nodes on all namespaces)
+
+# kubectl get nodes (confirm version)
+
+# apt update
+
+# apt-mark unhold kubeadm && \
+apt get update && apt-get install -y kubeadm=1.18.17-00 && \
+apt-mark hold kubeadm
+
+# kubeadm version
+
+# kubeadm upgrade plan
+
+# kubeadm upgrade apply 1.19.6
+
+# kubeadm upgrade plan
+
+# kubectl get nodes
+
+upgrade kubelet
+# kubectl drain controlplane
+
+# apt-mark unhold kubelet kubectl && \
+apt-get update && apt-get install -y kubelet=1.19.0-00 kubectl=1.19.x-00 && \
+apt-mark hold kubelet kubectl
+
+# kubectl uncordon controlplane
+
+- To upgrade worker nodes
+(a) upgrade kubeadm
+# apt-mark unhold kubeadm && \
+apt get update && apt-get install -y kubeadm=1.19.x-00 && \
+apt-mark hold kubeadm
+
+(b) upgrade kubelet config
+# kubeadm upgrade node config --kubelet-version v1.19.0
+
+(c) drain node (need to be run on controlplane)
+# kubectl drain node01 --ignore-daemonsets
+
+(d) upgrade kubelet and kubectl
+
+(e) reload and restart kubelet
+
+(f) Uncordon the node.
+
+
+**** Pracise test cluster
+# kubectl get nodes
+
+To check cluster version
+# kubectl version --short
+
+To see pods
+# kubectl get pods -o wide
+
+To see applications
+# kubectl get deployments
+
+To see latest stable version
+# kubeadm upgrade plan
+
+To drain node and make it unschedulable
+# kubectl drain master
+
+Upgrade master components
+# kubeadm version
+# apt install kubeadm=1.18.0-00
+# kubeadm version
+# kubeadm upgrade apply v1.18.0
+# apt install kubelet=1.18.0-00
+
+To mark node schedulable
+# kubectl uncordon master
+
+# kubectl drain node01
+# apt install kubeadm-1.18.0-00
+# kubeadm upgrade node
+# apt install kubelet=1.18.0-00
+
+Make it schedulable
+# kubectl uncordon node01
+
+***** Backup and restore
+- ETCD cluster
+details of state of kubernetes cluster
+hosted on master node
+etcd.service (--data-dir)
+take snapshot
+# ETCDCTL_API=3 etcdctl \
+     snapshot save snapshot.db
+
+# ls
+snapshot.db
+
+To view status
+# ETCDCTL_API=3 etcdctl \
+    snapshot status snapshot.db
+
+To restore
+- stop service
+# service kube-apiserver stopped
+
+
+# ETCDCTL_API=3 etcdctl \
+    snapshot restore snapshot.db \
+    --data-dir /var/lib/etcd-from-backup
+
+When etcd is restores it creates a new cluster configuration and configures the members of ETCD as new members to new cluster. This is to ensure that new member is not joined to cluster accidentally.
+
+then use the etcd.service file to use new data directory
+etcd.service
+--data-dir=/var/lib/etcd-from-backup
+
+Then, reload the service daemon
+# systemctl daemon-reload
+
+Restart  etcd service
+# service etcd restart
+
+Start kubeapi server service
+# service kube-apiserver start
+
+***** Practicals - Backup and restore
+Check ETCD version
+kubectl logs etcd-controlplane -n kube-system
+
+Save ETCD snapshot
+# ETCDCTL_API=3 etcdctl --endpoints=https://[127.0.0.1]:2379 \
+--cacert=/etc/kubernetes/pki/etcd/ca.crt \
+--cert=/etc/kubernetes/pki/etcd/server.crt \
+--key=/etc/kubernetes/pki/etcd/server.key \
+snapshot save /opt/snapshot-pre-boot.db

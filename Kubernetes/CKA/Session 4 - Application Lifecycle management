@@ -1,0 +1,410 @@
+Session 4 - Application Lifecycle management
+---------------------------------------------
+
+***** Rolling updates and rollbacks
+- Rollout and versioning.
+When you deploy an application, it triggers a rollout. it triggers a new revision, when app. is updated a new rollout is deployed with revision 2.
+
+# kubectl rollout status deployment/myapp-deployment
+
+# kubectl rollout history deployment/myapp-deployment
+
+2 types of deployment
+- destroy all and create new instances (not default) (recreate)
+- take down older version and bring new version one by one (rolling update)
+
+make necessary changes to definition file and then run
+- # Kubectl apply
+
+# kubectl set image deployment/myapp-deployment nginx=nginx1.19
+
+# kubectl describe deployment
+
+- upgrades
+when a new deployent is created to create 5 replicas, 
+
+# kubectl get replicasets
+
+to Undo
+# kubectl rollout undo deployment/myapp-deployment
+
+Create new deployment
+# kubectl create -f deploymen-def.yaml
+
+Get details of deployment
+# kubectl get deployments
+
+Update deployment
+# kubectl apply -f deployment-def.yaml
+Set image
+# kubectl set image deployment/myapp-deploymen nginx=nginx:1.9.1
+
+
+***** Configuring Applications
+Configuring applications comprises of understanding the following concepts:
+
+- Configuring Command and Arguments on applications
+
+- Configuring Environment Variables
+
+- Configuring Secrets
+
+
+***** Commands
+- Commands in Containers/docker
+# docker run ubuntu
+# docker ps
+# docker ps -a
+
+Append a command
+# docker run ubuntu sleep 5
+To make it permanent
+FROM Ubuntu
+CMD sleep 5
+# docker buid -t ubuntu-sleeper
+# docker run ubuntu-sleeper
+FROM Ubuntu
+ENTRYPOINT ["sleep"]
+
+default value
+FROM Ubuntu
+ENTRYPOINT ["sleep"]
+CMD ["5"]
+
+# docker run --entrypoint slepp2.0 ubuntu-sleeper 10
+
+
+***** Commands and Arguements
+# docker run --name ubuntu-sleeper ubuntu-sleeper
+# docker run --name ubuntu-sleeper ubuntu-sleeper 10
+# vi pod-definition.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu-sleeper-pod
+spec:
+  containers:
+    - name: ubuntu-sleeper
+      image: ubuntu-sleeper
+      args: ["10"]
+
+args option -> we are overriding CMD
+
+# vi pod-definition.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu-sleeper-pod
+spec:
+  containers:
+    - name: ubuntu-sleeper
+      image: ubuntu-sleeper
+      command: ["sleep2.0"]
+      args: ["10"]
+
+Command - > replaces the entrypoint instructions
+
+
+***** Solution - Commands and arguements
+
+***** Configure environment variables in applications
+env: array to set property
+
+env:
+  - name: APP_COLOR
+    value: pink
+
+Other ways:
+configmap
+secrets
+
+example for ConfigMaps
+env:
+  - name: APP_COLOR
+    valueFROM:
+      configMapKeyRef:
+
+env:
+  - name: APP_COLOR
+    valueFrom:
+      secretKeyRef:
+
+
+***** Configuring ConfigMaps in Applications
+ConfigMaps - are used to pass data in the form of key-value pair. Whan a pod is created inject config map to pod definition so that key-value pairs are available as environment variables
+there are 2 phase
+- create configmp
+- inject pod
+
+Creating ConfigMap
+- Imperative
+- declarative
+
+- Imperative
+# kubectl create config <config-name> --from-literal=key=value
+# kubectl create config appconfig --from-literal=color=blue --from-literral=mod=prod
+
+another example is to take vales from a file
+# kubectl create configmap config-name --from-file=<path_to_file>
+# kubectl create configmap app-config --from-file=app_config.properties
+
+
+- Declarative
+# kubectl create -f
+
+Create a definition file
+config-map.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_COLOR: blue
+  APP_MODE: prod
+
+# kubectl create -f config-map.yaml
+
+View config maps
+# kubectl get configmaps
+
+# kubectl describe configmaps
+
+
+- Configuring ConfigMaps with pod
+vi pod-definition.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simple-webapp-color
+  labels:
+    name: simple-webapp-color
+spec:
+  containers:
+  - name: simple-webapp-color
+    image: simple-webapp-color
+    ports:
+      - containerPort: 8080
+    envFrom:
+      - configMapRef:
+           name: app-config
+
+
+***** Configuring screts in applications
+Secrets - are used to store sensitive information (stored in encrypted and hased format)
+
+- create secret
+- inject to pod
+
+2 ways to create secret
+- Imperative
+- declarative
+
+Imperative way
+# kubectl create secret generic <secret-name> --from-literal=key=value
+# kubectl create secret generic app-secret --from-literal=DB_Host=mysql
+
+To use the value from a file
+# kubectl create secret generic <secret-name> --from-file=<path_to_file>
+# kubectl create secret generic app-secret --from-file=app_secret.properties
+
+Declarative
+vi secret-data.yaml
+apiVersion: v1
+kind: secret
+metadata:
+  name: app-secret
+data:
+  DB_Host: mysql
+  DB_User: root
+  DB_Password: password
+
+# kubectl create -f secret-data.yaml
+
+- To make it secured, you must specify the value in hashed format.
+To convert
+# echo -n 'mysql' | base64
+# echo -n 'root' | base64
+# echo -n 'password' | base64
+
+# kubectl get secrets
+# kubectl describe secrets
+# kubectl get secrets app-secret -o yaml
+
+to decode
+# echo -n "vale" |base64 --decode
+
+
+To inject secrets
+vi pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simple-webapp-color
+  labels: 
+    name: simple-webapp-color
+spec:
+  containers:
+  - name: simple-webapp-color
+    image: simple-webapp-color
+    ports:
+      - containerPort: 8080
+    envFrom:
+      - secretRef:
+          name: app-secret
+
+# kuebctl create -f pod.yaml
+
+Other ways to Inject
+ENV
+Volume
+Single ENV
+spec:
+
+
+**** Note about Secrets
+Remember that secrets encode data in base64 format. Anyone with the base64 encoded secret can easily decode it. As such the secrets can be considered as not very safe.
+
+The concept of safety of the Secrets is a bit confusing in Kubernetes. The kubernetes documentation page and a lot of blogs out there refer to secrets as a "safer option" to store sensitive data. They are safer than storing in plain text as they reduce the risk of accidentally exposing passwords and other sensitive data. In my opinion it's not the secret itself that is safe, it is the practices around it. 
+
+Secrets are not encrypted, so it is not safer in that sense. However, some best practices around using secrets make it safer. As in best practices like:
+
+Not checking-in secret object definition files to source code repositories.
+
+Enabling Encryption at Rest for Secrets so they are stored encrypted in ETCD. 
+
+
+Also the way kubernetes handles secrets. Such as:
+
+A secret is only sent to a node if a pod on that node requires it.
+
+Kubelet stores the secret into a tmpfs so that the secret is not written to disk storage.
+
+Once the Pod that depends on the secret is deleted, kubelet will delete its local copy of the secret data as well.
+
+Read about the protections and risks of using secrets here
+
+Having said that, there are other better ways of handling sensitive data like passwords in Kubernetes, such as using tools like Helm Secrets, HashiCorp Vault. I hope to make a lecture on these in the future.
+
+
+***** Secrets - Practise test
+kubectl create secret generic db-secret --from-literal=DB_Host=sql01 --from-literal=DB_User=root --from-literal=DB_Password=password123
+
+
+**** Scale applications
+
+
+***** Multi contianer PODs
+Add multiple containers to spec section
+
+**** Practise test - Multi container pods
+Edit the pod to add a sidecar container to send logs to ElasticSearch. Mount the log volume to the sidecar container..
+controlplane $ more /var/answers/answer-app.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app
+  namespace: elastic-stack
+  labels:
+    name: app
+spec:
+  containers:
+  - name: app
+    image: kodekloud/event-simulator
+    volumeMounts:
+    - mountPath: /log
+      name: log-volume
+
+  - name: sidecar
+    image: kodekloud/filebeat-configured
+    volumeMounts:
+    - mountPath: /var/log/event-simulator/
+      name: log-volume
+
+  volumes:
+  - name: log-volume
+    hostPath:
+      # directory location on host
+      path: /var/log/webapp
+      # this field is optional
+      type: DirectoryOrCreate
+
+
+***** Multi-container PODs design patterns
+There are 3 common patterns, when it comes to designing multi-container PODs. The first and what we just saw with the logging service example is known as a side car pattern. 
+The others are the adapter and the ambassador pattern.
+
+
+**** InitContainers
+In a multi-container pod, each container is expected to run a process that stays alive as long as the POD's lifecycle. For example in the multi-container pod that we talked about earlier 
+that has a web application and logging agent, both the containers are expected to stay alive at all times. The process running in the log agent container is expected to stay alive as long 
+as the web application is running. If any of them fails, the POD restarts.
+
+
+
+But at times you may want to run a process that runs to completion in a container. For example a process that pulls a code or binary from a repository that will be used by the main 
+web application. That is a task that will be run only  one time when the pod is first created. Or a process that waits  for an external service or database to be up before the actual 
+application starts. That's where initContainers comes in.
+
+
+
+An initContainer is configured in a pod like all other containers, except that it is specified inside a initContainers section,  like this:
+
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    command: ['sh', '-c', 'echo The app is running! && sleep 3600']
+  initContainers:
+  - name: init-myservice
+    image: busybox
+    command: ['sh', '-c', 'git clone <some-repository-that-will-be-used-by-application> ; done;']
+
+
+When a POD is first created the initContainer is run, and the process in the initContainer must run to a completion before the real container hosting the application starts. 
+
+You can configure multiple such initContainers as well, like how we did for multi-pod containers. In that case each init container is run one at a time in sequential order.
+
+If any of the initContainers fail to complete, Kubernetes restarts the Pod repeatedly until the Init Container succeeds.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+  - name: myapp-container
+    image: busybox:1.28
+    command: ['sh', '-c', 'echo The app is running! && sleep 3600']
+  initContainers:
+  - name: init-myservice
+    image: busybox:1.28
+    command: ['sh', '-c', 'until nslookup myservice; do echo waiting for myservice; sleep 2; done;']
+  - name: init-mydb
+    image: busybox:1.28
+    command: ['sh', '-c', 'until nslookup mydb; do echo waiting for mydb; sleep 2; done;']
+
+
+Read more about initContainers here. And try out the upcoming practice test.
+
+https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+
+Fullscreen
+Go to Previous lecture112. Multi-container PODs Design Patterns
+Go to Next lecture114. Practice Test - Init Containers
+
+
+
+
+***** Self Healing Applications
+Kubernetes supports self-healing applications through ReplicaSets and Replication Controllers. The replication controller helps in ensuring that a POD is re-created automatically when 
+the application within the POD crashes. It helps in ensuring enough replicas of the application are running at all times.

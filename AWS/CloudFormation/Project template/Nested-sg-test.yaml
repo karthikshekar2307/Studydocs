@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Root Stack Template
+
+Parameters:
+  VpcId:
+    Description: Create security group in this respective VPC
+    Type: AWS::EC2::VPC::Id
+
+Resources:
+  LoadBalancerGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: WebServer Load Balancer Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+      VpcID: !Ref VpcId
+
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: WebServer Security Group
+      VpcID: !Ref VpcId
+  WebServerIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref WebServerSecurityGroup
+      IpProtocol: tcp
+      FromPort: '80'
+      ToPort: '80'
+      SourceSecurityGroupId: !Ref LoadBalancerGroup
+
+Outputs:
+  LoadBalancerGroup:
+    Description: Load Balancer Group
+    Value: !Ref LoadBalancerGroup
+  WebServerSecurityGroup:
+    Description: Web Server Group
+    Value: !Ref WebServerSecurityGroup

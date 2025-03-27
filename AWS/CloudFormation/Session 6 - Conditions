@@ -1,0 +1,454 @@
+Session 6 - Conditions
+------------------------
+
+***** Conditions Introduction
+- Contains statements that define the circumstances under which entities are created or configred.
+- Example: 1 - We can create a condition and then associate it ith a resource or output so that AWS cloud formation only creates the resources output if the condition is true.
+- Example 2 - We can assocaiate the condition with a property so that AWS cloudformation only sets the property to a specific value if the condition is true,
+if the condition is false, AWS Cloudformation sets the property to a different value that we specify
+- We will use conditions, when we want to re-use the template in different contexts like dev and prod environments.
+
+Example:
+---------
+Conditions:
+  CreateEIPForProd:
+    Fn::Equals:
+      - !Ref EnvironmentName
+      - prod
+
+
+- Conditions are evaluated based on predefined Psuedo parameters or input parameter values that we specify when we create or update stack.
+- Within each condition we can reference the other condition.
+- We can associate these conditions in three places
+  - Resources
+  - Resource properties
+  - Outputs
+- At Stack creation or stack update, AWS CloudFormation evaluates all conditions in our template. During Stack update, resources that are now associated with a false condition are deleted.
+
+Important note: During stack update, we cannot update conditions by themselves. We can update conditions only when we include changes that add, modify or delete resources.
+
+We can use the below listed intrinsic functions to define conditions in Cloud formation template
+- Fn::And
+- Fn::Equals
+- Fn::If
+- Fn::Not
+- Fn::Or
+
+
+***** Conditions - Intrinsic function Fn::Equals
+Step01 : Create an EIP when environmentis prod, use intrinsic function Fn::Equals
+
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::Keyname
+    Description: Select the keypair
+  EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+
+Conditions:
+  CreateEIPForProd: !Equals [!Ref EnvironmentName, prod]
+
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !Ref MyKeyName
+      SecurityGroups: 
+        - default
+  MyProdEIP:
+    Type: AWS::EC2::EIP
+    Condition: CreateEIPForProd
+    Properties:
+      InstanceID: !Ref MyEc2Instance
+
+
+
+***** Conditions - Intrinsic funtion Fn::If and Psuedo parameter AWS::NoValue
+
+Create a Security group for dev environemnt when condition is met and demonstrate Pseudo parameter "AWS::NoValue" for when environment is prod.
+Use Intrinsic function Fn::If
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::Keyname
+    Description: Select the keypair
+  EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+
+Conditions:
+  CreateEIPForProd: !Equals [!Ref EnvironmentName, prod]
+  CreateDevSecurityGroup: !Equals [!Ref EnvironmentName, dev]
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !Ref MyKeyName
+      SecurityGroups: !If [CreateDevSecurityGroup, [!Ref DevEnvSecurityGroup], !Ref 'AWS::NoValue']
+        
+  MyProdEIP:
+    Type: AWS::EC2::EIP
+    Condition: CreateEIPForProd
+    Properties:
+      InstanceID: !Ref MyEc2Instance
+  DevEndSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateDevSecurityGroup
+    Properties:
+      GroupDescription: DevSG
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+
+
+***** Conditions - Intrinsic function Fn::If - Additional use-case
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::Keyname
+    Description: Select the keypair
+  EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+
+Conditions:
+  CreateEIPForProd: !Equals [!Ref EnvironmentName, prod]
+  CreateDevSecurityGroup: !Equals [!Ref EnvironmentName, dev]
+  CreateProdSecurityGroup: !Equals [!Ref EnvironmentName, prod]
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !Ref MyKeyName
+      SecurityGroups: !If [CreateDevSecurityGroup, [!Ref DevEnvSecurityGroup], !Ref ProdEnvSecurityGroup]
+        
+  MyProdEIP:
+    Type: AWS::EC2::EIP
+    Condition: CreateEIPForProd
+    Properties:
+      InstanceID: !Ref MyEc2Instance
+  DevEndSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateDevSecurityGroup
+    Properties:
+      GroupDescription: DevSG
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+  ProdEnvSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateProdSecurityGroup
+    Properties:
+      GroupDescription: ProdSG
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+
+
+***** Conditions - Intrinsic function Fn::Not
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::Keyname
+    Description: Select the keypair
+  EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - qa
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+    qa:
+      instanceType: t2.medium
+
+Conditions:
+  CreateEIPForProd: !Equals [!Ref EnvironmentName, prod]
+  CreateDevSecurityGroup: !Not [{Condition: CreateProdSecurityGroup}]
+  CreateProdSecurityGroup: !Equals [!Ref EnvironmentName, prod]
+
+
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !Ref MyKeyName
+      SecurityGroups: !If [CreateDevSecurityGroup, [!Ref DevEnvSecurityGroup], !Ref ProdEnvSecurityGroup]
+        
+  MyProdEIP:
+    Type: AWS::EC2::EIP
+    Condition: CreateEIPForProd
+    Properties:
+      InstanceID: !Ref MyEc2Instance
+  DevEndSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateDevSecurityGroup
+    Properties:
+      GroupDescription: DevSG
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+  ProdEnvSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateProdSecurityGroup
+    Properties:
+      GroupDescription: ProdSG
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+
+
+***** Conditions - Intrinsic function Fn::Or
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+    EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - qa
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+    qa:
+      instanceType: t2.medium
+
+Conditions:
+  CreateEIPForProd: !Equals [!Ref EnvironmentName, prod]
+  CreateDevSecurityGroup: !Not [{Condition: CreateProdSecurityGroup}]
+  CreateProdSecurityGroup: !Equals [!Ref EnvironmentName, prod]
+  IfRegionsUseKey: !or [!Equals [!Ref 'AWS::Region', us-east-2], !Equals [!Ref 'AWS::Region', us-west-1]]
+
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !If [IfRegionUseKeyName, cfn-key-1, cfn-key-2]
+      SecurityGroups: !If [CreateDevSecurityGroup, [!Ref DevEnvSecurityGroup], !Ref ProdEnvSecurityGroup]
+        
+  MyProdEIP:
+    Type: AWS::EC2::EIP
+    Condition: CreateEIPForProd
+    Properties:
+      InstanceID: !Ref MyEc2Instance
+  DevEndSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateDevSecurityGroup
+    Properties:
+      GroupDescription: DevSG
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+  ProdEnvSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateProdSecurityGroup
+    Properties:
+      GroupDescription: ProdSG
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+
+
+***** Conditions - Intrinsic function Fn::And
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+    EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - qa
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+    qa:
+      instanceType: t2.medium
+
+Conditions:
+  CreateEIPForProd: !Equals [!Ref EnvironmentName, prod]
+  CreateDevSecurityGroup: !Not [{Condition: CreateProdSecurityGroup}]
+  CreateProdSecurityGroup: !Equals [!Ref EnvironmentName, prod]
+  IfRegionsUseKey: !And [!Or [!Equals [!Ref 'AWS::Region', us-east-2], !Equals [!Ref 'AWS::Region', us-west-1]], !Equals [!Ref EnvironmentName, dev]]
+
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !If [IfRegionUseKeyName, cfn-key-1, cfn-key-2]
+      SecurityGroups: !If [CreateDevSecurityGroup, [!Ref DevEnvSecurityGroup], !Ref ProdEnvSecurityGroup]
+        
+  MyProdEIP:
+    Type: AWS::EC2::EIP
+    Condition: CreateEIPForProd
+    Properties:
+      InstanceID: !Ref MyEc2Instance
+  DevEndSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateDevSecurityGroup
+    Properties:
+      GroupDescription: DevSG
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+  ProdEnvSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateProdSecurityGroup
+    Properties:
+      GroupDescription: ProdSG
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0

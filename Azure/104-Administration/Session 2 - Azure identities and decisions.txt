@@ -1,0 +1,151 @@
+***** Azure Active directory
+- Helps employees sign in and access resources
+- User information such as name, Id, email, password and address is stored in Azure AD by organizations.
+- Identity, user or applications (require authentication via secret keys or certificates)
+- Everyday, Azure AD manages over 1.2 billion identities according to microsoft
+- Tenant:
+represents an organization
+Tenant is automatically created when your organization signs up for a microsoft cloud service subscription
+The term tenant means a single instance of Azure AD representing a single organization.
+The terms tenant and directory are often user interchangebly
+
+
+***** Windows server AD (AD DS) vs Azure AD
+- Windows server AD provides an identity and access management service that's managed by your own
+organization in on-premises environment.
+- Azure Active directory: Cloud-based service
+- Communication protocols: Azure AD is HTTP/HTTPS based, it does not use kerberos authentication.
+Authentication: SAML, WS-Federation, and OpenID conect
+Authorization - 0Auth
+- Azure AD connect : synchronizes ser identities between on-premises active directory and azure AD
+- Azure AD provides extra features
+
+***** Create external or guest user
+- Cloud identities
+Users exists only in Azure AD
+Local/your AAD or external AAD
+
+- Guest Identities (External identities)
+B2B collaboration
+
+- Directory-synchronized (hybrid identities)
+
+
+***** Azure AD B2C and B2B
+- Azure B2C (business to customer)
+Azure AD B2C is a seperate service from Azure Acive directory (Azure AD)
+It is built on the same technology as Azure AD but for a different purpose
+It allows business to build customer facing applications, and then allow anyone to sign up into those applications with no restrictions
+
+
+***** Manage External Users
+Understanding External Users in Azure:
+
+External users are individuals who do not belong to the organization's tenant but require access to specific resources or services hosted on Azure.
+
+These users can be vendors, clients, contractors, or any external stakeholders who need to collaborate with the organization.
+
+Enabling External User Access:
+
+Azure provides various methods to enable external user access to resources securely. Administrators can configure Azure Active Directory (Azure AD) to accommodate external users, offering authentication and authorization options tailored to specific requirements.
+
+Inviting External Users to Azure:
+
+Inviting external users is a pivotal step in granting them access to the organization's Azure resources. Azure AD simplifies this process by allowing administrators to send invitations with predefined roles and access levels, ensuring proper access control.
+
+Implementing Secure Collaboration with External Users:
+
+Security is a top concern when collaborating with external users. Azure offers several features to enforce secure collaboration, including Conditional Access Policies, Multi-Factor Authentication (MFA), and Role-Based Access Control (RBAC). By leveraging these tools, administrators can protect sensitive data and mitigate unauthorized access risks.
+
+Monitoring and Auditing External User Activities:
+
+To maintain compliance and track potential security issues, it's vital to monitor and audit external user activities. Azure Monitor provides comprehensive insights into external user access, allowing administrators to detect anomalies and potential security threats.
+
+External User Lifecycle Management:
+
+Managing the lifecycle of external user accounts is crucial for maintaining an organized Azure environment. This includes setting up expiration policies, handling account deletion, and reinstating accounts as needed.
+
+Best Practices for Managing External Users in Azure:
+
+Adhering to best practices ensures smooth collaboration and robust security. Key best practices include implementing the principle of least privilege, regularly reviewing access permissions, conducting security awareness training for external users, and staying updated with Azure's latest features.
+
+Conclusion:
+
+Effectively managing external users in Azure is critical for modern organizations to foster collaboration while upholding data security and compliance. By understanding the role of external users, implementing secure access controls, and adhering to best practices, Azure administrators can build a secure and efficient collaboration platform that enhances productivity and promotes successful partnerships with external stakeholders. Regular evaluation and optimization of external user management strategies will lead to a stronger Azure environment and position organizations for continued growth in the dynamic cloud computing landscape.
+
+
+***** Azure AD free vs premium
+
+
+***** Azure AD Groups
+
+
+***** Azure AD Dynamic Groups
+
+
+***** Active directory roles
+
+
+***** Azure AD role vs RBAC roles
+Azue AD has different roles and all other services have different set of roles
+The role that is required for only Azure active directory services are called - Azure AD administrator roles.
+For all other services we need RBAC roles.
+
+Azure AD administrator roles
+- Manage access to Azure AD resources
+- Scope is at the tenant levels
+- Examples:
+Creating users/groups/roles
+Managing password
+Billing/payment info
+
+RBAC roles
+- Manage access to Azure resources
+- Scope can be specified at multiple levels (management group, subscription, resource group, resource)
+create database
+create/manage/delete VM and other resources
+
+
+***** Administrative units
+Azure AD administrator roles scope is at the tenant level
+
+
+**** Demo custom domain
+
+
+**** Azure AD device management
+
+- Azure AD: Identity and access management service
+Identity - users, groups, applications or devices
+
+- Make sure devices are secure, compliant and non-vulnerable
+
+- Azure AD deice settings
+(a) Azure AD registration
+user-owned devices (ByOD)
+local user acccount to login to device, corporate accoung to access resources
+limited management
+Windows 10 or newer, iOS, Android and macOS
+
+- Azure AD join
+Corporate owned devices
+corporate user account
+full intune management
+windows 11 and windows 10 devices 
+
+- Hybrid azure AD join
+Suitabl for hybrid organizations with existing on-premises AD infrastructure
+joined to on-premises AD and azure AD requiring organizational account to sign in to the device
+
+
+***** Conditional access
+Azure active directory uses conditional access to grant (or deny) resource access based on identity signals
+- Who the user is (administrator or normal user)
+- Where the user is (usual or unexpected location)
+- What device the user is requesting access from (is this a new device?)
+
+Based on signals AAD can device to allow, deny or require MFA access
+
+Multi-authentication only if sign-in signals are unusual (like unexpected location)
+
+Need an azure AD premium P1 or P2 license

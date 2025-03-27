@@ -1,0 +1,307 @@
+Section 13 - Mock Exams
+------------------------
+
+***** Test 1 - Solution
+q.1 Deploy pod
+# kubectl run nginx-pod --image=nginx:alpine
+
+q2. deploy pod with labels
+# kubectl run messaging --image=redis:alpine -l tier=msg
+
+q3. create namespace
+# kubectl create ns <namespace
+
+q4. get list of nodes in jason format
+# kubectl get nodes -o jason > <path>
+
+q5. Create a service messaging-service to expose the messaging application within cluster on port 6379
+# kubectl expose pod messaging --name messaging-service --port  6379 --target-port 6379
+# kubectl describe svc
+
+q6. Create a deployment named hr-web-app using the image with 2 replicas
+# kubectl create deployment hr-web-app --image=image_name --replicas=2
+
+q7. create a static pod
+# kubectl run static-busybos --image=busybox --command sleep 1000 --dry-run-client -o yaml > static-busybox.yaml
+# ls -l /etc/kubeneres/manifests
+# cd /var/lib/kubelet
+# more config.yaml
+# mv static-busybox.yaml /etc/kubernetes/manifests
+
+q8. create pod in a namespace
+# kubectl run temp-bus --image=redis:alpine --namespace=finance
+
+q9. A new application has something wrong
+# kubectl get deployments
+# kubectl get pods
+# kubectl desctibe pod orange
+(command is incorrect)
+# kubectl get pod orange -o yaml > pod.yaml
+# kubectl delete pod orange
+# vi orange.yaml
+<fix command>
+# kubectl create -f orange.yaml
+
+q10. Expose service
+# kubectl expose deployment hr-web-app hr-web-app-service --type=NodePort --port 8080 --target-port -o yaml > svc.yam
+# vi svc.yaml
+<update nodePort>
+# kubectl create -f svc.yaml
+
+q11. Use json path qury to retrieve
+< use kubenetes documentation for json path>
+# kubectl get nodes -o jsonpath='{.items[*].status.nodeInfo.osImage}' > <filepath>
+
+q12. Create persistent volume
+<use kubernetes document>
+# vi pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-analytics
+spec:
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: <paste the path>
+
+# kubectl create -f pv.yaml
+
+
+***** Mock exam 2
+------------------
+
+# kubectl get nodes
+
+# ETCDCTL_API=3 etcdctl version
+
+# cd /etc/kubernetes/manifests
+
+(copy the command syntax from etcd.yaml)
+
+#  ETCDCTL_API=3 etcdctl snapshot save <snapshot directory>
+
+# ETCDCTL_API=3 etcdctl snapshot status -w table
+
+# kubectl run elephant --image=redis --dry-run=client -o yaml > elephant.yaml
+
+# vi elephant.yaml
+resources:
+  requests:
+    cpu: "1"
+    memory: "200Mi"
+
+# kubectl create -f elephant.yaml
+# kubectl describe pod elephant
+
+security context
+
+spec:
+  containers:
+    - image: busybox:1.28
+      name: super-user-pod
+      command: ["sleep", "4800"]
+      securityContext:
+        capabilities:
+          add: ["SYS_TIME"]
+
+# kubectl create -f super-user-pod
+
+# kubectl describe pod super-user-pod
+
+# kubectl ge pv
+
+# vi pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:my-pvc
+spec:
+  accessModes: 
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Mi
+
+# kubectl create -f pvc.yaml
+
+add volume mount
+# vi pod.yaml
+
+
+create deployment and record updates
+# kubectl create deployment nginx-deploy --image=nginx:1.16 --replicas=1 --record
+# kubectl get reployments
+# kubectl rollout history deployment nginx-deploy
+# kubectl set image deployment nginx-deploy nginx-deploy=nginx:1.17 --record
+# kubectl rollout status deployment nginx-deploy
+# kubectl rollout history deployment nginx-deploy
+
+create key and csr
+vi john.yaml
+apiVersion: certificates.k8s.io/v1beta1
+king: CertificateSigningRequest
+metadata:
+  name: john
+spec:
+  requests: <paste>
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+
+# kubectl create -f john.yaml
+
+# kubectl get csr
+
+# kubectl certificate approve john
+
+# kubectl create role developer --resource=pod --verb=create,list,get,update --namespace=development
+
+# kubectl desctibe role developer
+
+# kubectl create rolebinding developer-role-binding --role=developer --user=john --namespace=development
+
+# kubectl describe rolebindings.rbac.authorization.k8s.io developer-role-binding
+
+# kubectl auth can-i update pods --as=john
+
+
+Create pod, expose service, resolve using names and save it to a file
+
+# kubectl run --generator=run=pod/v1 nginx-resolver --image=nginx
+# kubectl expose pod nginx-resolver --name=nginx-resolver-service --port=80 --target-port=80 --type=ClusterIP
+# kubectl describe svc nginx-resolver
+
+# kubectl run --generator=run-pod/v1 test-nslookup --image=busybox:1.28 --rm -it -- nslookup nginx-resolver-service >/root/nginx.svc
+
+# kubectl run --generator=run-pod/v1 test-nslookup --image=busybox:1.28 --rm -it -- nslookup <POD_IP >/root/nginx.pod
+
+Create static pod and make sure it is recreated after failure.
+
+# kubectl get nodes
+# ssh node01
+# systemctl status kubelet
+# cd /var/lib/kubelet
+# vi config.yaml
+staticpod<Update path>
+# mkdir manifests
+# kubectl run --generator=run-pod/v1 nginx-critical --image=nginx --dry-run -o yaml > nginx-critical.yaml
+# vi nginx-critical.yaml
+
+<verify id the pod is created
+
+
+***** Mock exam 3
+q1. Create new service account, create pv, role and pod
+# kubectl create serviceaccount pviewwe
+# kubectl create clusterrole pvviewer-role --resource=persistentvolumes --verb=list
+# kubectl create clusterrolebinding pvviewer-role-binding --clusterrole pvviewr-role --serviceaccount=default:pvviewer
+# kubectl run pvviewer --image=redis --dry-run -o yaml > pod.yaml
+# vi pod.yaml
+Spec:
+serviceAccountName: pvviewer
+
+# kubectl create -f pod.yaml
+
+# kubectl describe pod pvviewer
+
+
+q2. List all inernalIPs and save resilt to /root/node_ips
+# kubectl ge nodes -o jsonpath='{.items[*].status.addresses]'
+
+q3. Create multi-pod
+# kubectl run --generator=run-pod/v1 alpha --image=nginx --dry-run -o yaml > multi.yaml
+# vi multi.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: multi-pod
+spec:
+  containers:
+  - image: nginx
+    name: alpha
+    env:
+    - name: name
+      value: alpha
+  - image: busybox
+    name: beta
+    command: ["sleep", "4800"]
+    env:
+    - name: name
+      value: beta
+
+# kubectl describe pod multi-pod
+
+q4. Create pod called lion 
+# vi lion.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: lion
+spec:
+  containers:
+  - image: redis:alpine
+    name: lion
+    resources:
+      limits:
+        cpu: "2"
+        memory: "500"
+
+# kubectl create -f lion.yaml
+
+
+q5. create network policy
+# kubectl get pods
+# kubectl describe pod np-test1
+# kubectl describe svc np-test-service
+
+# kubectl run --generator=run-pod/v1 test-np --image=busybox:1.28 --rm -it -- sh 
+# nc -z -v -w 2 np-test-service 80
+
+# kubectl get netpol
+
+# kubectl describe netpol default-deny
+
+
+q6. Taint node and make node unschedulable
+# kubectl get nodes
+# kubectl taint node node01 env_type=production:NoSchedule
+# kubectl describe node node01 | grep -i taint
+# kubectl  kubectl run -generator=run-pod/v1 dev-redis --image=redis:alpine
+# kubectl get pods -o wide
+# kubectl get pod dev-redis -o yaml > prod-redis.yaml
+# vi prod-redis.yaml
+
+tolerations:
+- effect: NoSchedule
+  key: env_type
+  operator: Equal
+  value: production
+
+
+q7. create pod in hr namespace
+
+q8. Something wrong with kubeconfig
+# cd .kube
+< check IP of kubeapi server>
+
+# cd /root/
+ls
+# kubectl cluster info --kubeconfig=/root/super.kubeconfig
+# cd /root/sper-config
+correct port to 6443
+
+q8. create new deployment troubleshoot and fix
+# kubectl get deployments
+# kubectl scale deployyment nginx-deploy --replica=3
+
+# kubectl describe deployment nginx-deploy 
+
+# kubectl logs nginx-depploy
+
+# kubectl -n kube-system get pods
+kube-controller-manager in imagepullbackoff
+
+# sed -i 's/kube-conto1ler-manager/kube-controller-manager/g' kube-controller-manager.yaml 

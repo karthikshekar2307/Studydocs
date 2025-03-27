@@ -1,0 +1,93 @@
+Session 1 - Introduction
+-------------------------------------------------
+
+***** EKS Clusters
+
+EKS - Core components
+- EKS Control plane: Contains ubernetes master components like etcd, kube-apiserver, kube-controller
+- Worker nodes and node groups : Group of EC2 instances where we run our application workload
+- Fargate profiles (serverless) : Instead of EC2 we run workloads on serverless fargate profiles
+- VPC: With AWS VPC we follow secure networking standards wich will allow us to run production workloads on EKS.
+
+**** Control plane objects are managed by AWS. Our responsibility is to provision cluster and worker nodes and node groups
+
+Provision EKS ----> Deploy worker nodes ----> Connect to EKS  ------> Run kubernetes apps
+
+(a) EKS Control plane
+- Runs single tenant control plane for each cluster
+- 2 API nodes and 3 etcd nodes that run across 3 AZ within a region
+
+(b) Worker nodes and node groups
+- EKS worker nodes run in our AWS account and connect to our cluster's control plane via the cluster API server endpoint
+- A node group is one or more Ec2 instances that are deployed in an EC2 autoscaling group.
+- All instances in a nide group must
+Be the same instance type
+Be running the same AMI
+Use same EKS worker node IAM role
+
+(c) Fargate profiles
+- Is a technology that provides on-demand, right-sized compute capacity for containers
+- With fargate, we no longer have to proviion, confugre, or scale groups of virtual machines to run containers
+Each pod running on Fargate has its own isolation bondary and does not share the underlying kernel, CPU resources
+memory resources, or elastic network interface with another pod.
+- AWS specially built fargate cntrollers that recognixes teh pods belinging to fargate and schedules tham on Fargate profiles
+
+***** Create EKS cluster using EKSCLI
+- Create with and without node groups
+# eksctl create cluster --name=eksdemo1 --region=ap-southeast-2 --zones=ap-southeast-2a, ap-southeast2b --without-nodegroup
+
+
+***** Create managed node group and IAM OIDC provider
+OIDC - Open ID connect
+# Replace with region & cluster name
+eksctl utils associate-iam-oidc-provider \
+    --region us-east-1 \
+    --cluster eksdemo1 \
+    --approve
+
+- Create key-pair
+
+- Create node group with additional add-ons in public subnet
+
+To see what are the options available while creating nodegroup
+# eksctl create nodegroup --help (look at addon  options)
+- Create Public Node Group   
+# eksctl create nodegroup --cluster=eksdemo1 \
+                       --region=ap-southeast-2 \
+                       --name=eksdemo1-ng-public1 \
+                       --node-type=t3.medium \
+                       --nodes=2 \
+                       --nodes-min=2 \
+                       --nodes-max=4 \
+                       --node-volume-size=20 \
+                       --ssh-access \
+                       --ssh-public-key=kube-demo \
+                       --managed \
+                       --asg-access \
+                       --external-dns-access \
+                       --full-ecr-access \
+                       --appmesh-access \
+                       --alb-ingress-access 
+
+Managed worker nodes - managed by AWS
+
+
+***** Verify cluster and nodes
+- Verify nodegroup subnet
+
+# List EKS clusters
+eksctl get cluster
+
+# List NodeGroups in a cluster
+eksctl get nodegroup --cluster=<clusterName>
+
+# List Nodes in current kubernetes cluster
+kubectl get nodes -o wide
+
+# Our kubectl context should be automatically changed to new cluster
+kubectl config view --minify
+
+***** EKS delete cluster
+- Rollback any changes that is being made
+- delete cluster
+# eksctl delete cluster eksdemo1

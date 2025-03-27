@@ -1,0 +1,60 @@
+***** S3 Lifecycle rules (with s3 analytics)
+- Transition actions - Configure objects to transition to another storage classes
+Move objects to Standard IA class 60 days after creation
+Move to glacier for archiving after 6 months
+
+- Expiration actions - configure objects expire (delete) after some time
+Access log files can be set to delete after a 365 days
+can be used to delete old versions of files (if versioning is enabled)
+can be used to delete incomplete multipart uploads
+
+- Rules can be created for a certain prefix
+
+- Rules can be created for certain object tags
+
+Storage class analysis
+- help you decide when to transition objects to the right storage class
+- Recommendations for standard and Standard IA 
+Does not work for one-zone IA or Galcier
+- Report is updated daily
+- 24 to 48 hours to start seeing data analysis
+
+***** S3 requester pays
+
+
+***** S3 event notifications
+
+***** S3 Performance
+- Amazon s3 automatically scales to high request rates, latency 100-200ms
+- Your application can achieve at least 3500 PUT/COPY/POST/DELETE or 5500 GET/HEAD rquests per second per prefix in a bucket
+- There are no limits to the number of prefixes in a bucket
+- If you spread reads across all for prefixes evenly, you can achieve 22000 requests per second for GET and HEAD
+
+(a) Multi part upload
+(b) S3 Transfer acceleration
+
+(c) S3 byte-range fetches
+- Parallelize GETs by requesting specific byte ranges
+- Better resilience in case of failures
+Can be used to retrieve only partial data (for example, head of the file)
+
+
+***** S3 select and Galcier select
+- Retrieve less data using SQL by prforming server-side filtering
+- can filter by rows and clumns (simple SQL statements)
+- Less network transfer, less CPU cost client side
+
+
+***** S3 batch operations
+- Perform buld operations on exisiting S3 objects with a single request.
+for example
+modify object metadata and properties
+copy files between s3 buckets
+encrypt un-encrypt objects
+
+- A job consists a list of objectsm the action to perform and optional parameters
+
+- S3 batch operation manages retries, tracks progress, sends completion notifications, generate reports
+
+- You can use S3 inventory to get object list and use S3 select to filter your objects
+

@@ -1,0 +1,27 @@
+Session 1 - Understanding the Kubernetes attack surface
+--------------------------------------------------------
+
+***** The attack
+- Attacker tries to ping the domain name to locate the server details
+- Attacker tries to do port scan to see the list of open ports
+- Runs the below command to list the containers in the host
+# docker -H www.vote.com ps
+# docker -H www.vote.com version --> shows the version of the docker running on the host.
+
+- Tries to run a previleged container to gain access to the host
+# docker -H www.vote.com run --privileged -it ubuntu bash
+- Tries to install curl
+- Tries to run exploit script
+
+- Tries to get more details on the underlying infrastructure (k8s)
+
+Lists Iptables to check the details of ports for kubernetes dashboard
+
+
+
+***** 4Cs of Cloud Native security
+(a) Cloud
+(b) Cluster
+(c) Containers
+(d) Code
+

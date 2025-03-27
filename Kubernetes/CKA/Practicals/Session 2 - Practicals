@@ -1,0 +1,159 @@
+Session 2 - Practise
+-----------------------
+
+***** Manual Scheduling
+
+1. Manual scheduling
+Pod-definition.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    name: nginx
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      ports:
+        - containerPort: 8080
+  nodeName: node02
+
+2. schedule a running POD
+Pod-bind-definition.yaml
+apiVersion: v1
+kind: Binding
+metadata:
+  name: nginx
+target:
+  apiVersion: v1
+  kind: Node
+  name: node02
+
+API request
+# curl --header "Content-Type:application/json" --request POST --data '{"apiVersion": "v1", "kind": "Binding"...}' http://$SERVER/ai/v1/namespaces/default/pods/$PODNAME/binding/
+
+
+***** practise test
+- Create "nodeName" property as part of spec.
+
+Different ways to check why the instance was not scheduled
+- check for scheduler
+# kubectl get pods -n kube-system
+
+
+***** Labels and Selectors
+kubectl get pods --selector app=myapp
+
+
+***** Taints and Tolerations
+# kubectl taint nodes node-name key=value:taint-effect
+# kubectl taint nodes node1 app=blue:NoSchedule
+
+Toleration definition
+-----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+spec:
+  containers:
+    - name: nginx-controller
+      image: nginx
+  tolerations:
+    - key: "app"
+      operator: "Equal"
+      value: "blue"
+      effect: "NoSchedule"
+
+Remove Taint
+# kubectl taint nodes controlplane node-role.kubernetes.io/master:NoSchedule-
+
+
+***** Node selector
+# kubectl label nodes node-1 size=Large
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+spec:
+  containers:
+    - name: data-processor
+      image: data-processor
+  nodeSelector:
+    size: Large
+
+
+***** Node Affinity
+
+
+***** Static POD
+kubelet.service
+--pod-manifest-path=/etc/kubernetes/manifests
+
+Create static-pod
+kubectl run --restart=Never --image=busybox static-busybox --dry-run=client -o yaml --command -- sleep 1000 > /etc/kubernetes/manifests/static-busybox.yaml
+
+
+***** Manual scheduler
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-custom-scheduler
+  namespace: kube-system
+spec:
+  containers:
+  - command:
+    - kube-scheduler
+    - --address=127.0.0.1
+    - --kubeconfig=/etc/kubernetes/scheduler.conf
+    - --leader-elect=true
+    - --scheduler-name=my-custom-scheduler
+    image: k8s.gcr.io
+    name: kube-scheduler
+
+Create new pod with custom scheduler
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+  schedulerName: my-custom-scheduler
+
+# kubectl get events
+
+**** Practise test - multiple scheduler
+
+1. Name of the POD that schedules
+kube-scheduler-master
+
+2. Image used for scheduler
+# kubectl describe pod kube-scheduler-master -n kube-system |grep -i image
+
+3. Deploy additional scheduler
+manifes file - /etc/kubernetes/manifests
+# cp kube-scheduler.yaml /root/my-scheduler.yaml
+# cd /root
+# vi my-schedler.yaml
+--> kubernetes.io---> multiple scheduler
+put
+- --scheduler-name=my-scheduler
+# kubectl create -f myscheduler.yaml
+
+4. create POD with new custom scheduler
+vi nginx-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - image: nginx
+    name: nginx
+  schedulerName: my-scheduler
+
+# kubectl create -f my-scheduler

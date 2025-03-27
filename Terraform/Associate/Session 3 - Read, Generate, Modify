@@ -1,0 +1,115 @@
+Session 3 - Read, Generate, Modify configuration
+--------------------------------------------------------
+
+***** Understand attributes and output values in terraform
+Terraform has capability to output the attribute of a resource with the output values.
+Example:
+ec2_public_ip = 35.161.21.197
+bucket_identifier = terraform-test-kplabs.s3.amazonaws.com
+
+An Output attributes can not only be used for the user reference but it can also act as a input to other resources being created via terraform
+example:
+After EIP gets created, its IP address should automatically get whitelisted in the security group
+
+
+vi s3.tf
+provider "aws" {
+region = "us-west-2"
+access_key = "sadfsdfsdf"
+secret_key = "sdfsdfsdfd"
+}
+
+resources "aws_eip" "lb" {
+vpc = true
+}
+
+output "eip" {
+  value = aws_eip.lb.public_ip
+  }
+
+resource "aws_s3_bucket" "my_s3" {
+  bucket = "kplabs-attribute-demo-001"
+  }
+
+output "mys3bucket" {
+value = aws_s3_bucket.mys3.bucket_domain_name
+}
+
+public_ip and bucket_domain_name are the attribute associated with the resource
+
+
+# terraform plan
+
+# terraform apply
+
+attributes reference
+
+if you are not using attributes refereence, the output will show all the attributes of the resource.
+
+
+***** Referencing cross-account resource
+vi reference.tf
+provider "aws" {
+  region = "us-west-2"
+  access_key = "sfdsdfdsfsdf"
+  secret_key = "sadfsdfsdf"
+  }
+
+resource "aws_instance" "myec2" {
+  ami = "ami-fdfsdfsdfsdfsdf"
+  instance_ty[e = t2.micro
+  }
+
+resource "aws_eip" "lb" {
+  vpc = true
+  }
+
+resource "aws_eip_association" "eip_assoc" {
+  instance_id = aws_instance.myec2.id
+  allocation_id = "${aws_eip.lb.id
+}
+
+# terraform plan
+# terraform apply
+
+
+***** Terraform variables
+Static = work
+- Repeated static values can create more work in future
+
+Variables are good
+We can have a central source from which we can import the values from
+
+
+***** Approaches for variable assignment
+If not explicit value has been defined, it uses the default value in the variable file
+
+Variables in Terraform can be assigned values in multiple ways
+Some of these include
+- Environment variables
+- Command line flags
+- From a file
+- Variable defaults
+
+# terraform plan
+
+# terraform plan -var="instancetype=t2.small"
+
+If there are no default values, we can see value assigned with var.instancetype (it will ask for selection)
+
+File based perspective
+
+vi terraform.tfvars
+
+Generally, it is always good to have terraform.tfvars
+
+# terraform plan -var-file="custom.tfvars"
+
+export TF_VAR_instancetype="t2.nano"
+export $TF_VAR_instancetype
+
+
+
+
+
+

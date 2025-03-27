@@ -1,0 +1,214 @@
+***** Services
+Enable communication outiside cluster 
+
+Service Types
+- Node port
+- ClusterIP - creates virtual IP inside cluster
+- Load balancer - in supported cloud providers
+
+NodePort: Map port on node to port on Pod.
+There are 3 ports
+- port on pod (ex: 80)
+- Port on service - referred to as port
+- Port on node - access the webserver externally
+
+Range - 30000 to 32767
+
+service-definition.yaml
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+spec:
+  type: NodePort
+  ports:
+    - targetPort: 80
+      port: 80
+      nodePort: 30008
+   selector:
+     app: myapp
+     type: front-end
+
+
+***** Services - ClusterIP
+Default type: ClusterIP
+
+service-definition.yaml
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  type: ClusterIP
+  ports:
+    - targetPort: 80
+      port: 80
+  selector:
+     app: myapp
+     type: front-end
+
+
+***** Network policies
+policy-definition.yaml
+-----
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: db-policy
+spec:
+  podSelector:
+    matchLabels:
+      role: db
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+         matchlables:
+           name: api-pod
+    ports:
+    - protocol: TCP
+      port: 3306
+
+Solutons that support network policies
+- kube-router
+- calico
+- Romana
+- Weave-net
+
+
+***** Developing network policies
+to block all traffic from DB
+----
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: db-policy
+spec:
+  podSelector:
+    matchLabels:
+      role: db
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+     - podSelector:
+         matchLabels:
+           name: api-pod
+       namespaceSelector:
+         matchLabels:
+           name: prod
+      - ipBlock:
+          cidr: 192.168.5.10/32
+    ports:
+    - protocol: TCP
+      port: 3306
+  egress:
+  - to:
+    - ipBlock:
+         cidr: 192.168.5.10/32
+     ports:
+     - protocol: TCP
+       port: 80
+
+
+***** Ingress networking
+services vs ingress
+Is a Layer 7 load balancer built in kubernetes cluster
+
+Other solutions
+- nginx
+- HA proxy
+- traefik
+
+Solution is called - Ingress controller
+uses ingress resources
+
+There is no default ingress controller
+
+(a) Ingress controller
+- what to deployng
+nginx
+contour
+haproxy
+traefik
+Istio
+
+To configure Ingress controller there are multiple Kubernetes objects that needs to work
+- Deployment:  that includes ingrss controller definitions
+- Service: to expose the ingress controller as node port
+- ConfigMap: To feed in environment variable
+- secrets : to authenticate ingress controllers with other objects
+
+Ingress resource
+- is created with definition file
+----
+apiVersion: extensions/v1beta1
+kind:
+metadata:
+  name: ingress-wear
+spec:
+  backend:
+    serviceName: wear-servoce
+    servocePort: 80
+
+# kubectl get ingress
+
+we needs rules to route traffic based on condition
+
+----
+apiVersion: extensions/v1beta1
+kind:
+metadata:
+  name: ingress-wear
+spec:
+  rules:
+  - http: 
+      paths:
+      - path: /wear
+        backend:
+          serviceName: wear-service
+          servicePort: 80
+      - path: /watch
+        backend:
+          serviceName: watch-service
+          servicePort: 80
+
+Based on hostname/domainnames
+----
+apiVersion: extensions/v1beta1
+kind:
+metadata:
+  name: ingress-wear
+spec:
+  rules:
+  - host: wear.my-online-store.com
+   http: 
+       paths:
+       - backend:
+           serviceName: wear-service
+           servicePort: 80
+   - host: watch.my-online-store.com
+     http: 
+        paths:
+        - backend:
+            serviceName: wear-service
+            servicePort: 80
+
+
+***** Article ingress
+As we already discussed Ingress in our previous lecture. Here is an update. 
+In this article, we will see what changes have been made in previous and current versions in Ingress.
+Like in apiVersion, serviceName and servicePort etc.
+
+Now, in k8s version 1.20+ we can create an Ingress resource from the imperative way like this:-
+
+Format - 
+# kubectl create ingress <ingress-name> --rule="host/path=service:port"
+
+Example - 
+#kubectl create ingress ingress-test --rule="wear.my-online-store.com/wear*=wear-service:80"
+

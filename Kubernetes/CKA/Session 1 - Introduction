@@ -1,0 +1,686 @@
+Session 1 - Introduction
+-------------------------
+
+***** Core Concepts
+
+- Docker vs containerd
+CRI - interface developed by kubernetes to incorporate all runtime engines.
+OCI standards- Open container image initiative (how container image should be built)
+
+Docker was not built to adhere cri.
+
+kubernetes introduced dockershim to support docker.
+
+docker inlcuces components such as - CLI, API, Build, Volumes, Auth, security and
+container runtime called - runc, and daemon is called 'Containerd'
+
+containerd is supported by cri standard
+
+in v1.24, support for dockershim was removed.
+
+# ctr - to perform basic container/image functions
+
+alternate to 'ctr' its 'nerdctl'
+
+# crictl - used for debugging but not for creating containers. works with kubelet
+
+- Cluster Architecture
+Purpose of kubernetes is to host your applications in the form of containers in automated fashion. So that we can have any number of 
+versions of applications
+
+There are many things involved
+- Worker Nodes (that host applications) (that has containers)
+- Master nodes
+- ETCD cluster (databas that stores info in key-value format)
+- Scheduler (decides the node that container should be placed)
+- Controllers 
+      Node controller
+      replication controller
+- API server (kubeapiserver)
+- Container runtime engine (docker)
+- kubelet (agent that runs on each node in cluster) kubeapi interacts with kubelet to get more details
+- kube-proxy (enables communication)
+
+
+Master
+- etcd
+- scheduler
+- controllers
+- kubeapi server
+
+
+Worker
+- kubelet
+- kubeproxy
+
+
+***** ETCD
+What is ETCD
+- distributed and reliable key-value store
+
+Install ETCD
+- download binaries
+- extract binaries
+- run
+
+When you extract and run etcd, it starts etcd service on Port 2379 by default
+
+Default client that comes with etcd is etcdctl (etcd-control) client , it is a command line tool for ETCD
+./etcdctl set key1 value1 (set key-value pair)
+./etcdctl get key1  (get key value)
+./etcdctl (see all options)
+
+ETCD datastore, stores information about
+- nodes
+- PODs
+- Configs
+- Secrets
+- Accounts
+- Roles
+- Bindings
+- Others
+
+Every information we see while from etcdctl get command is from etcd server, every change we make to cluster are updated in ETCD server.
+Only when things are updated to ETCD server, the change is complete.
+
+Types of kubernetes deployment
+- Deployed from scratch
+- Using Kubeadm tool
+
+If you deploying the cluster from scratch, you should download the binary manually and extract it and configure it (to use etcd api server endpoint)
+If you are deploying cluster using kubeadm, kubeadm deploys a pod in kube-system namespace.
+
+To explore ETCD database using etcdctl utility within pod.
+
+To list all keys stored by etcd
+# kubectl exec etcd-master -n kube-system etcdctl get / --prefix -keys-only
+
+kubernetes directory structure
+- root directory is "registry"
+
+In HA environment, you will have multiple master nodes in cluster you will have multiple etcd cluster is spread across multiple master nodes. You may need to set the correct cluster configuration option.
+
+"--initial-cluster-controller"
+
+----------------------------------------------------
+***** ETCD - Commands (Optional)
+(Optional) Additional information about ETCDCTL Utility
+
+ETCDCTL is the CLI tool used to interact with ETCD.
+
+ETCDCTL can interact with ETCD Server using 2 API versions - Version 2 and Version 3.  By default its set to use Version 2. Each version has different sets of commands.
+
+For example ETCDCTL version 2 supports the following commands:
+
+etcdctl backup
+etcdctl cluster-health
+etcdctl mk
+etcdctl mkdir
+etcdctl set
+
+Whereas the commands are different in version 3
+
+etcdctl snapshot save 
+etcdctl endpoint health
+etcdctl get
+etcdctl put
+
+To set the right version of API set the environment variable ETCDCTL_API command
+
+export ETCDCTL_API=3
+
+When API version is not set, it is assumed to be set to version 2. And version 3 commands listed above don't work. When API version is set to version 3, version 2 commands listed above don't work.
+
+Apart from that, you must also specify path to certificate files so that ETCDCTL can authenticate to the ETCD API Server. The certificate files are available in the etcd-master at the following path. We discuss more about certificates in the security section of this course. So don't worry if this looks complex:
+
+--cacert /etc/kubernetes/pki/etcd/ca.crt     
+--cert /etc/kubernetes/pki/etcd/server.crt     
+--key /etc/kubernetes/pki/etcd/server.key
+
+So for the commands I showed in the previous video to work you must specify the ETCDCTL API version and path to certificate files. Below is the final form:
+
+kubectl exec etcd-master -n kube-system -- sh -c "ETCDCTL_API=3 etcdctl get / --prefix --keys-only --limit=10 --cacert /etc/kubernetes/pki/etcd/ca.crt --cert /etc/kubernetes/pki/etcd/server.crt  --key /etc/kubernetes/pki/etcd/server.key" 
+-----------------------------------------------------
+
+***** Kube-api server
+- Is the primary management component in kubernetes. When you run kubectl command, kubectl is reaching kube-api server, kube-api server validates the request and then gets data from etcd server and shares the details to kubectl
+
+- You can invoke a POST API request.
+
+1. Authenticate User
+2. VAlidate request
+3. Retrieve data
+4. Update ETCD
+5. Scheduler
+6. Kubelet
+
+
+- When we invoke a pod creation API, API server reach etcd server, creates record and updates the result to API stating that - POD is created successfully.
+- Then scheduler is made aware that a new POD needs to be created and then updates kube api server.
+- kubeapi server then works with kubelet running on nodes to create container pods
+- kubelet updates details of new pod to kubeapi
+- kubeapi then updates this details to etcd server.
+
+
+view kubeapi server options
+/etc/kubernetes/manifests
+
+non-kubeadm setup
+/etc/systemd/system/kube-apiserver.service
+
+# ps -eaf |grep -i kube-apiserver
+
+
+******* Kube controller manager
+It will be running in Master node
+- Watch status
+- Remediate situation
+
+* Node Controller
+Controller continuously monitors the state of the system and works towards bringing whole system to desired state.
+- monitoring
+- take necessary action
+
+It uses "kube-apiserver" to perform node monitor every 5 seconds (heartbeat). it waits 40 secs to mark it as down and before removing the pod it gives 5 minutes
+Node Monitor Period = 5s
+Node Monitor Grace Period = 40s
+POD eviction timeout = 5m
+
+* Replication Controller - tries to spin up containers/pods
+
+Where are all controllers located
+- Kubernetes controller manager (kube-controller-manager)
+
+kube-controller-manager.service
+
+# kubectl get pods -n kube-system
+
+# cat /etc/systemd/system/kube-controller-manager.service
+
+
+******* Kube Scheduler
+- which pod goes on which node
+
+kubelet creates pod, scheduler just decides depending on certian criteria (resource requirements)
+Phases
+- filter nodes that do not fit resource criteria
+- scheduler then rank the nodes to decide best fit (calculate free resource after placing pod)
+- scheduler places the pod depending on left out availability
+
+Install
+- Download binary
+- extract
+- run
+
+kubeadm
+- /etc/kubernetes/manifests/kube-scehduler.yaml
+- ps -aux |grep -i kue-scheduler
+
+
+****** Kubelet
+- responsible for load and unload containers , runs on worker node. registers it with master
+- monitors and updates master
+
+kubelet is not deployed by "kubeadm" like other components. Kubelet binary needs to downloaded and installed
+ps -aux |grep -i kubelet
+
+
+***** Kube proxy
+Every pod in kubernetes clsuter can reach any other pod in the cluster. This is established via "POD Network" in the cluster.
+
+This is internal network that spawn across all the nodes in the cluster
+
+Through this network, they can communicate.
+
+services in kubernetes cannot join pod network, as its not a container,its a virtual component present in memory
+
+Kube-proxy is run on each node in kubernetes cluster, its job is to look for new services and everytime a new service is created, it creates a appropriate rules on each node to forward traffic to those services
+
+One way it does is by using iptable rules.
+
+Install
+- download binary
+- extract
+- run
+
+
+***** Recap POD
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+    type: front-end
+spec:
+  containers:
+    - name: nginx-container
+      image: nginx
+
+# kubectl create -f pod-definition.yml
+
+# kubectl get pods
+
+# kubectl decribe pod my-pod
+
+
+***** Demo
+vi pod-defintion.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+    - name: nginx-container
+      image: nginx
+    
+
+# kubectl apply -f pod-definition.yaml
+
+
+***** Recap - Replicasets
+1. Replication Controller
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: myapp-rc
+  labels:
+    app: myapp
+    type: front-end
+spec:
+  template:
+     metadata:
+       name: myapp-pod
+       labels:
+         app: myapp
+     spec:
+       containers:
+          - name: nginx-container
+            image: nginx
+replicas: 3
+
+# kubectl create -f rc-definition.yaml
+
+# kubectl get replicationcontroller
+
+# kubectl get pods
+
+2. Replicaset
+vi replicaset-definition.yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: myapp-replicaset
+  labels:
+    app: myapp
+    type: front-end
+spec:
+  template:
+     metadata:
+       name: myapp-pod
+       labels:
+         app: myapp
+     spec:
+       containers:
+          - name: nginx-container
+            image: nginx
+replicas: 3
+selector:
+  matchLabels:
+    type: front-end
+
+# kubectl create -f replicaset-definition.yaml
+
+# kubectl get repicasets
+
+# kubectl replace -f replicaset-definition.yaml
+
+# kubectl scale --replicas=6 -f replicaset-definition.yaml
+
+# kunectl scale --replicas=6 replicaset app-replicaset
+
+
+***** Deployments
+
+Certification Tip!
+Here's a tip!
+
+As you might have seen already, it is a bit difficult to create and edit YAML files. Especially in the CLI. During the exam, you might find it difficult to copy and paste YAML files from browser to terminal. Using the kubectl run command can help in generating a YAML template. And sometimes, you can even get away with just the kubectl run command without having to create a YAML file at all. For example, if you were asked to create a pod or deployment with specific name and image you can simply run the kubectl run command.
+
+Use the below set of commands and try the previous practice tests again, but this time try to use the below commands instead of YAML files. Try to use these as much as you can going forward in all exercises
+
+Reference (Bookmark this page for exam. It will be very handy):
+
+https://kubernetes.io/docs/reference/kubectl/conventions/
+
+Create an NGINX Pod
+
+# kubectl run nginx --image=nginx
+
+Generate POD Manifest YAML file (-o yaml). Don't create it(--dry-run)
+
+# kubectl run nginx --image=nginx --dry-run=client -o yaml
+
+Create a deployment
+
+# kubectl create deployment --image=nginx nginx
+
+Generate Deployment YAML file (-o yaml). Don't create it(--dry-run)
+
+# kubectl create deployment --image=nginx nginx --dry-run=client -o yaml
+
+Generate Deployment YAML file (-o yaml). Don't create it(--dry-run) with 4 Replicas (--replicas=4)
+
+# kubectl create deployment --image=nginx nginx --dry-run=client -o yaml > nginx-deployment.yaml
+
+Save it to a file, make necessary changes to the file (for example, adding more replicas) and then create the deployment.
+
+
+
+***** Namespaces
+
+Default namespace - created when kubernetes is setup
+
+When a service is created, DNS entries for the services are created in following format
+
+mysql.connect("db-service.dev.svc.cluster.local") 
+cluster.local -> default fomain 
+svc -> service
+dev -> Namespace
+db-service -> service name
+
+
+vi namespace-dev.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+spec:
+
+# kubectl create namespace dev
+
+Setting resource quota
+vi compute-quota.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: Compute-Quota
+  namespace: dev
+spec:
+  hard:
+    pods: "10"
+    requets.cpu: "4"
+    requests.memory: 5Gi
+    limits.cpu: "10"
+    limits.memory: 10Gi
+
+
+# kubectl run redis --image=redis --dry-run=client -o yaml > pod.yaml
+# kubectl apply -f pod.yaml
+
+
+***** Services
+
+Enables communication between application/users
+
+1. Node Port - Where service makes internal pod accessible by Port on the node
+2. Cluster IP - Creates virtual IP inside the cluster to enable communication between different services
+3. Load balancer - Provisions load balancer configuration in supported cloud service provider.
+
+Service is like a virtual server inside the node. Inside cluster it has its own IP address. That IP is called Cluster IP
+
+In Node port configuration, there are 3 ports involved
+(a) Port on the pod where actual webserver is running (example : 80), it is referred to as a target port. Because that is where service forwards the request.
+(b) Port on Service Itself, it is simply referred to as port.
+(c) Node Itself - which we use to access web server externally, its known as node ports. The port range should be within known port range that is from 30000 to 32767
+
+Create Service
+vi service-definition.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+spec:
+  type: NodePort
+  ports:
+    - targetPort: 80
+      port: 80
+      nodePort: 30008
+  selector:
+    app: myapp
+    type: front-end
+
+# kubectl create -f service-definition.yaml
+
+# kubectl get services
+
+When we have multiple PODs
+Default algorithm: Random
+
+When PODS are distributed to multiple nodes, kubernetes spawns service across all nodes
+
+
+***** Services Cluster IP
+In a Multi tier web application architecture, we may have multiple PODs covering Front-end, back-end and redis
+Rightway to establish connections
+Kubernetes service can help group together application and provide a single interface to access pod in a group.
+
+vi service-definition.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: back-end
+spec:
+  type: ClusterIP
+  ports:
+    - targetPort: 80
+      port: 80
+  selector:
+    app: myapp
+    type: back-end
+
+
+***** Services - Load balancer.
+ - Create a new VM and install Load balancer like Haproxy or nginx
+ - In supported Cloud, we can leveage native load balancer
+
+vi service-definition.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  nameL myapp-service
+spec:
+  type: LoadBalancer
+  ports:
+    - targetPort: 80
+      port: 80
+      nodePort: 30008
+
+**** Services Demo
+# kubectl expose deployment simple-webapp-deployment --name=webapp-service --target-port=8080 --type=NodePort --port=8080 --dry-run-client -o yaml > svc.yaml
+# vi svc.yaml
+
+
+***** Imperative vs declarative
+Imperative : giving step by step instructions
+Declarative: just to specify requirement
+
+Example of an imperative instructions in IAAC world
+(a) step by step instuctions of installing web server
+- Provision a VM by the name
+- Install NGINX
+- Edit config file to use 8080
+- Edit config file to web patch
+- Load web page
+- start NGINX server
+
+Example of a declarative instructions in IAAC world
+(b) 
+VM Name: web-server
+Database: nginx
+Port: 8080
+Path: /var/www/nginx
+Code: GIT Repo -x
+
+Orchestration tools fall into declarive 
+
+In kubernetes, we use "kubectl" command to perform imerative operations
+# kubectl run --image=nginx nginx
+# kubectl create deployment --image=nginx nginx
+# kubectl expose deployment nginx --port 80
+# kubectl edit deployment nginx
+# kubectl scale deployment nginx --replicas=5
+# kubectl set image deployment nginx nginx=nginx:1.18
+# kubectl create -f nginx.yaml
+# kubectl replace -f nginx.yaml
+# kubectl delete -f nginx.yaml 
+
+Declarative
+# kubectl apply -f nginx.yaml
+
+
+Using "Kubectl edit" will create a in-memory manifest file and will only be applied for the config. running will not be saved to original manifest file.
+
+To update Objects
+# kubectl edit deployment nginx
+# kubectl replace -f nginx.yaml
+
+# kubectl replace --force -f nginx
+
+
+In declaratie, we use "kubectl apply" instead of "kubectl create"
+- Create Objects
+# kubectl apply -f nginx.yaml
+# kubectl apply -f /path/to/config-files
+
+
+- Update Objects
+# kubectl apply -f nginx.yaml
+
+Exam Tip
+--------
+Use Imperative
+
+
+
+****** Certification Tips - Imperative Commands with Kubectl
+While you would be working mostly the declarative way - using definition files, imperative commands can help in getting one time tasks done quickly, as well as generate a definition template easily. This would help save a considerable amount of time during your exams.
+
+Before we begin, familiarize with the two options that can come in handy while working with the below commands:
+--dry-run: By default as soon as the command is run, the resource will be created. If you simply want to test your command, use the --dry-run=client option. This will not create the resource, instead, tell you whether the resource can be created and if your command is right.
+-o yaml: This will output the resource definition in YAML format on the screen.
+
+Use the above two in combination to generate a resource definition file quickly, that you can then modify and create resources as required, instead of creating the files from scratch.
+
+POD
+Create an NGINX Pod
+# kubectl run nginx --image=nginx
+
+Generate POD Manifest YAML file (-o yaml). Don't create it(--dry-run)
+# kubectl run nginx --image=nginx  --dry-run=client -o yaml
+
+Deployment
+Create a deployment
+# kubectl create deployment --image=nginx nginx
+
+Generate Deployment YAML file (-o yaml). Don't create it(--dry-run)
+# kubectl create deployment --image=nginx nginx --dry-run -o yaml
+
+Generate Deployment with 4 Replicas
+# kubectl create deployment nginx --image=nginx --replicas=4
+
+You can also scale a deployment using the kubectl scale command.
+# kubectl scale deployment nginx --replicas=4
+
+Another way to do this is to save the YAML definition to a file.
+# kubectl create deployment nginx --image=nginx--dry-run=client -o yaml > nginx-deployment.yaml
+
+You can then update the YAML file with the replicas or any other field before creating the deployment.
+
+Service
+Create a Service named redis-service of type ClusterIP to expose pod redis on port 6379
+# kubectl expose pod redis --port=6379 --name redis-service --dry-run=client -o yaml
+
+(This will automatically use the pod's labels as selectors)
+Or
+# kubectl create service clusterip redis --tcp=6379:6379 --dry-run=client -o yaml  (This will not use the pods labels as selectors, instead it will assume selectors as app=redis. You cannot pass in selectors as an option. So it does not work very well if your pod has a different label set. So generate the file and modify the selectors before creating the service)
+
+Create a Service named nginx of type NodePort to expose pod nginx's port 80 on port 30080 on the nodes:
+# kubectl expose pod nginx --port=80 --name nginx-service --type=NodePort --dry-run=client -o yaml
+(This will automatically use the pod's labels as selectors, but you cannot specify the node port. You have to generate a definition file and then add the node port in manually before creating the service with the pod.)
+
+Or
+
+# kubectl create service nodeport nginx --tcp=80:80 --node-port=30080 --dry-run=client -o yaml
+(This will not use the pods labels as selectors)
+Both the above commands have their own challenges. While one of it cannot accept a selector the other cannot accept a node port. I would recommend going with the `kubectl expose` command. If you need to specify a node port, generate a definition file using the same command and manually input the nodeport before creating the service.
+
+Reference:
+https://kubernetes.io/docs/reference/kubectl/conventions/
+
+
+***** Practise test
+--------------------
+# kubectl run nginx-pod --image=nginx:alpine
+
+# kubectl run redis --image=redis:alpine --labels=tier=db
+# kubectl run redis --image=redis:alpine --dry-run=client -oyaml > redis-pod.yaml
+# vi redis-pod.yaml
+# kubectl create -f redis-pod.yaml 
+
+# kubectl expose pod redis --name redis-service --port 6379 --target-port 6379
+# kubectl describe svc redis-service
+Name:              redis-service
+Namespace:         default
+Labels:            run=redis
+                   tier=db
+Annotations:       <none>
+Selector:          run=redis,tier=db
+Type:              ClusterIP
+IP Families:       <none>
+IP:                10.107.215.146
+IPs:               10.107.215.146
+Port:              <unset>  6379/TCP
+TargetPort:        6379/TCP
+Endpoints:         10.244.0.5:6379
+Session Affinity:  None
+Events:            <none>
+
+
+# kubectl create deployment webapp image=kodekloud/webapp-color 
+# kubectl scale deployment webapp --replicas=3
+
+# kubectl run custom-nginx --image=nginx --port 8080
+
+# kubectl create ns dev-ns
+
+# kubectl create deployment redis-deploy --image=redis --namespace=dev-ns --dry-run=client -o yaml > redis.yaml
+
+# kubectl apply -f redis.yaml
+
+# kubectl run http --image=httpd:alpine --port 80 --expose --dry-run=client -o yaml > httpd.yaml
+# kubectl run http --image=httpd:alpine --port 80 --expose
+
+
+***** Kubectl apply command
+can be used to manage objects in declarative way
+
+"kubectl apply" -> takes into consideration local configuration file and last applied configuration on what changes needed to be made.
+if object does not exist, apply creates it
+
+
+When you run apply, the local config file of object is converted to JSON format, it is then stored as last applied configuration, going forward any updates to the live object,
+all 3 are compared to identify what changes are to be made on live object
+
+when nginx image is updated, apply command compares original configuration with live configuration, if there is a difference, live configuration is updated with the new value.
+
+After all changes, live updated config is updated to local file to keep it up-to-date
+
+We need last applied configuration, during the scenario where if a config is deleted, kubectl apply is run, it compares with last applied and it removes it from live configuation.
+
+Where is last applied json file
+- it is stored as annotation in live object configuation
+

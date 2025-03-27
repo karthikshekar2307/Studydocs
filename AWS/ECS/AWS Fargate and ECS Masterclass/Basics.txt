@@ -1,0 +1,6 @@
+Components of Amazon ECS
+- Cluster
+- Task  - group containers in task
+- Service
+
+Task definition - is a file that defines one or more containers, deployed as single unit

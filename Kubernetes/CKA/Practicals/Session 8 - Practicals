@@ -1,0 +1,260 @@
+Session 8 - Practicals
+-----------------------
+
+Create Network namespaces
+# ip netns add red
+# ip netns add blue
+
+List namespaces
+# ip netns
+
+List interfaces
+# ip link
+
+To view the interfaces in a network namespace
+# ip netns exec red ip link
+or
+# ip -n red link
+
+To see arp table
+# arp
+
+To create network connection between two namespaces
+1. Create a network link
+# ip link add veth-red type veth peer name veth-blue
+2. Attach virtual interfaces to namespaces
+# ip link set veth-red netns red
+# ip link set veth-blue netns blur
+3. Assign IP
+# ip -n red addr add 192.168.15.1 dev veth-red
+# ip -n blue addr add 192.168.15.2 dev. veth-blue
+4. Bring up the interfaces
+# ip -n red link set veth-red up
+# ip -n blue link set veth-blue up
+5. Now try listing arp
+# ip netns exec red arp
+# ip netns exec blue arp
+
+
+***** Docker networking
+How docker creates and manages Bridge network
+- When docker is installed, docker creates an internal private network called bridge by default
+# docker network ls
+docker calls the network by name bridge. But host recognizes the network as docker0
+# ip link
+
+Whenever a container is created, a namespace is created. To view namespace
+# ip netns
+
+You can verify the namespace used by container using below command
+# docker inspect <container_id>
+
+How does docker attach container or network namespace to bridge network?
+# ip link
+
+# ip -n <namespace> link
+
+# ip netns
+
+# ip -n <containerID> addr
+
+
+***** Cluster Networking
+Networking configuration required on master and worker nodes.
+
+Kubernetes consists of master and worker.
+
+Master should accept connections on Port 6443 for api server.
+Port list
+(a) Kube-api : 6443
+(b) Kubelet : 10250
+(c) kube-scheduler: 10251
+(d) kube-controller-manager: 10252
+(e) etcd : 2379 / etcd client : 2380
+
+**** Practise test - Explore environment
+-----------------------------------------
+
+# kubectl get nodes
+
+What is the network interface cofigured for cluster connectivity on the master node
+# ifconfig -a
+# cat /etc/network/interfaces
+
+What is the ip on node01
+# ssh node01
+# ifconfig ens03
+
+Check port used by kube-scheduler
+# netstat -natulp | grep kube-scheduler
+
+check port used by etcd
+# netstat -natulp | grep etcd | grep LISTEN
+
+***** Practise test - Explore CNI Weave
+Check CNI Configuration
+# cd /etc/cni/net.d
+Another way
+# kubectl get pod
+
+**** Practise test - Deploy network solution
+Install weave network
+# kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+
+***** Practise test - Networking Weave
+# kubectl exec -it busybox -- sh
+
+
+***** Solution - Services networking
+What is the range of IP address for PODs
+# kubectl -n kube-system get pods
+# kubectl -n kube-system logs weave-net-h
+
+What is the ip range for services
+# cat /etc/kuberntents/manifests
+vi kube-api.service
+
+What type of proxy is kubeproxy is using
+# kubectl -n kube-system logs kube-proxy-pod
+
+how dooes kybernetes clste runs as daemonset
+# kubectl -n kube-system get ds
+
+
+***** Service Networking
+
+proxy mode can be set using "Proxy-mode" option
+# kube-proxy --proxy-mode [userspace| iptables| ipvs ]
+
+When a service is created, the kubernetes assigns an IP to service and this is defined in "--service-cluster-ip-range" option
+# kube-api-server --service-cluster-ip-range ipNet
+
+# iptables -: -t net | grep db-service
+
+logs:
+cat /var/log/kube-proxy.log
+
+***** Practise test - Service Networking
+What is the IP Range configured for the services within the cluster?
+# cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep cluster-ip-range
+
+What type of proxy is the kube-proxy configured to use?
+
+***** DNS in kubernetes
+To reach a service in an different namespace
+# curl http://web-service.apps
+
+For each namespace, DNS service creates a subdomain with namespace name
+for example:
+web-service.apps
+
+All pods and service in a namespace are grouped together within a subdomain in the name of the namespace all services are futther group together with subdomain called svc
+web-service.apps.svc
+
+Further all pods and services are grouped togther as 
+web-service.apps.svc.cluster.local
+
+***** Practise test - Core DNS
+Execute nslookup from a pod and redirect output to a file
+#  kubectl exec -it hr -- nslookup mysql.payroll > /root/CKA/nslookup.out
+
+Where is the configuration file located for configuring the CoreDNS service?
+# kubectl -n kube-system describe deployments.apps coredns | grep -A2 Args | grep Corefile
+
+What is the root domain/zone configured for this kubernetes cluster?
+# kubectl describe configmap coredns -n kube-system 
+
+
+**** Ingress
+
+Nginx is deployed as another deployment in kubernetes
+Definition file:
+-----------------
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  nameL nginx-ingress-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      nameL nginx-ingress
+  template:
+    metadata:
+      labels:
+        name: nginx-ingress
+    spec:
+      containers:
+        - name: nginx-ingress-controller
+          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.21.0
+      args:
+        - /nginx-ingress-controller
+        - --configmap=$(POD_NAMESPACE)/nginx-configuration
+      env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      ports:
+        - name: http
+          containerPort: 80
+        - name: https
+          containerPort: 443
+
+
+***** Practise test - Ingress
+You are requested to make the new application available at /pay.
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: test-ingress
+  namespace: critical-space
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /pay
+        backend:
+          serviceName: pay-service
+          servicePort: 8282
+
+***** Practise Test - Ingress2
+
+1. Deploy a new ingress controller.
+(a) create namespace
+# kubectl create ns ingress-space
+
+(b) Nginx controller required confgmap
+# kubectl create cm nginx-configuiration -n ingress-space
+
+(c) Nginx ingress controller requires service account
+# kubectl create sa ingress-serviceaccount -n ingress-space
+
+(d) create role and role-bindings
+# kubectl -n ingress-space get roles rolebindings
+
+(e) DEploy ingress controller
+vi /root/ingress-controller
+<correct namespace>
+# kubectl apply -f ingrss-controller.yaml
+<correct indentation>
+<correct API version>
+
+(f) create a service to make ingress available to external users
+# kubectl -n ingress-space expose deployment ingress-controller --name ingress --port 80 --target-port 80 --type NodePort --dry-run -o yaml > ingress-svc.yaml
+# vi ingress-svc.yaml
+<set namespace>
+<add  nodePort>
+# kubectl apply -f ingress-svc.yaml
+
+(g) Create the ingress resource to make the applications available at /wear and /watch on the ingress service
+< copy the template from documentation>
+vi ingress.yaml
+< change definition file>

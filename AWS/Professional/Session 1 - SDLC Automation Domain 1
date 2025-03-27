@@ -1,0 +1,411 @@
+Session 1 - SDLC Automation Domain 1
+--------------------------------------
+
+***** CICD Overview
+
+Continuous Integration
+- Developers push the code to a code repository often (GitHub/CodeCommit/BitBucket)
+- A testing/Build server that checks the code as soon as its pushed (CodeBuild/Jenkins CI)
+- Developer gets feedback about the tests and checks that have passed/failed.
+- Find bugs early, fix bugs
+- Deliver faster as the code is tested
+- Deploy often
+- Happier developers, as they're unblocked
+ 
+Continuous Delivery
+- Ensure that the software can be released reliably whenever needed.
+- Ensures deployments happen often and are quick
+- Shift away from "one release every 3 months" to "5 releases a day"
+- That usually means automated deployment
+CodeDeploy
+JenkinsCD
+Spinnaker
+etc.
+
+Push code often (Code Repository) -----> Get code build and test (Build server) ------> Deploy every passing build (Deployment Server) ----> App Server v1 (to) App server v2
+
+- Continuous Delivery vs Continuos deployment
+(a) Continuous delivery
+    - Ability to deploy often using automation
+    - May involve a manual step to "approve" a deployment
+    - The deployment itself is still autmomated and repeated
+
+
+(b) Continuous deployment:
+    - Full automation, every code change is deployed all the way to production
+    - No manual intervention of approvals.
+
+
+Technology Stack and CICD (Orchestrate: AWS CodePipeline)
+- Code   ----> AWS CodeCommit (GitHub)
+- Build  ----> AWS CodeBuild (Jenkins CI)
+- Test   -----> AWS CodeBuild (Jenkins CI)
+- Deploy ------> Beanstalk / Code Deploy/Cloudformation
+- Provision -----> Beanstalk / Code Deploy/Cloudformation
+
+
+***** Reference Links for Domain 1 - AWS Certified DevOps Engineer Professional
+Reference Links for Domain 1
+I use the documentation a lot in this course. Here are all the links that are visited during this section. I recommended you read through them in your own time, as I judge them to have some importance for your understanding of the services and the exam. Happy reading!
+
+1. CodeCommit
+
+https://www.atlassian.com/git/tutorials/using-branches
+
+https://docs.aws.amazon.com/codecommit/latest/userguide/auth-and-access-control-iam-identity-based-access-control.html
+
+https://aws.amazon.com/blogs/devops/refining-access-to-branches-in-aws-codecommit/
+
+https://docs.aws.amazon.com/codecommit/latest/userguide/how-to-notify.html
+
+https://docs.aws.amazon.com/codecommit/latest/userguide/how-to-repository-email.html )
+
+https://docs.aws.amazon.com/codecommit/latest/userguide/how-to-notify-lambda.html
+
+https://docs.aws.amazon.com/codecommit/latest/userguide/how-to-migrate-repository-existing.html
+
+2. CodeBuild
+
+https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html
+
+https://docs.aws.amazon.com/codebuild/latest/userguide/samples.html
+
+https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker.html
+
+https://aws.amazon.com/blogs/devops/validating-aws-codecommit-pull-requests-with-aws-codebuild-and-aws-lambda/
+
+3. CodeDeploy
+
+https://docs.aws.amazon.com/codedeploy/latest/APIReference/API_MinimumHealthyHosts.html
+
+https://docs.aws.amazon.com/codedeploy/latest/userguide/reference-appspec-file-structure-hooks.html
+
+https://docs.aws.amazon.com/codedeploy/latest/userguide/reference-appspec-file-structure-hooks.html#appspec-hooks-server
+
+https://docs.amazonaws.cn/en_us/codedeploy/latest/userguide/reference-appspec-file-structure-hooks.html#reference-appspec-file-structure-environment-variable-availability
+
+https://docs.aws.amazon.com/codedeploy/latest/userguide/monitoring-cloudwatch-events.html
+
+https://aws.amazon.com/blogs/devops/view-aws-codedeploy-logs-in-amazon-cloudwatch-console/
+
+https://docs.aws.amazon.com/codedeploy/latest/userguide/monitoring-sns-event-notifications.html
+
+https://docs.aws.amazon.com/codedeploy/latest/userguide/deployments-rollback-and-redeploy.html
+
+https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-groups-configure-advanced-options.html
+
+https://docs.aws.amazon.com/codedeploy/latest/userguide/instances-on-premises.html
+
+https://docs.aws.amazon.com/codedeploy/latest/userguide/register-on-premises-instance-iam-user-arn.html
+
+https://docs.aws.amazon.com/codedeploy/latest/userguide/register-on-premises-instance-iam-session-arn.html
+
+https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-configurations.html#deployment-configuration-lambda
+
+https://docs.aws.amazon.com/codedeploy/latest/userguide/reference-appspec-file-structure-hooks.html#appspec-hooks-lambda
+
+4. CodePipeline
+
+https://docs.aws.amazon.com/codepipeline/latest/userguide/reference-pipeline-structure.html#action-requirements
+
+https://docs.aws.amazon.com/codepipeline/latest/userguide/best-practices.html#use-cases
+
+https://docs.aws.amazon.com/codepipeline/latest/userguide/actions-invoke-lambda-function.html
+
+https://docs.aws.amazon.com/codepipeline/latest/userguide/actions-create-custom-action.html
+
+https://docs.aws.amazon.com/codepipeline/latest/APIReference/API_PutJobSuccessResult.html
+
+https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/continuous-delivery-codepipeline.html
+
+https://docs.aws.amazon.com/codepipeline/latest/userguide/tutorials-cloudformation.html
+
+https://github.com/aws-samples/codepipeline-nested-cfn
+
+https://aws.amazon.com/blogs/devops/implementing-gitflow-using-aws-codepipeline-aws-codecommit-aws-codebuild-and-aws-codedeploy/
+
+5. CodeStar
+
+https://docs.aws.amazon.com/codestar/latest/userguide/templates.html
+
+6. Jenkins
+
+https://aws.amazon.com/getting-started/projects/setup-jenkins-build-server/
+
+https://wiki.jenkins.io/display/JENKINS/Amazon+EC2+Plugin
+
+https://aws.amazon.com/blogs/devops/setting-up-a-ci-cd-pipeline-by-integrating-jenkins-with-aws-codebuild-and-aws-codedeploy/
+
+https://wiki.jenkins.io/display/JENKINS/AWS+CodeBuild+Plugin
+
+https://wiki.jenkins.io/display/JENKINS/Amazon+EC2+Container+Service+Plugin
+
+https://wiki.jenkins.io/display/JENKINS/Artifact+Manager+S3+Plugin
+
+https://wiki.jenkins.io/display/JENKINS/AWS+CodePipeline+Plugin
+
+
+***** Code Commit overview
+
+- Version control is the ability to understand the various changes that happend to the code over time (and possibly roll back)
+- All these are enabled by using a version control system such as Git
+- A Git repository can live on one's machine, but it usually lives on a central online repository
+- Benefits are:
+Collaborate with other developers
+Make sure the code is backed-up somewhere
+Make sure its fully viewable and auditable
+
+CodeCommit
+- Git repositories can be expensive
+- The industry includes:
+  (a) GitHub: Free public repositores
+  (b) Bitbucket
+And, AWS CodeCommit:
+  - Private Git repositories
+  - No size limit on repositories (Scale seamlessly)
+  - Fully managed, highly available
+  - Code only in AWS Cloud account (Increased securiy and compliance)
+  - Secure (Encrypted, access control etc)
+  - Integrated with Jenkins/ CodeBuild/ Other CI tools.
+
+
+***** CodeCommit - First repo and HTTPS config
+- Codecommit is like github in AWS, the advantage of having CodeCommit is that we can have the repository privately held within our VPC.
+- There are 2 ways to connect to git repository
+HTTPS
+SSH
+We cant setup HTTPS connection as root, we need to connect as IAM user and then configure HTTPS/SSH.
+
+When we create a new IAM user, we can set-up HTTPS git credentials for AWS Codecommit using the IAM console, it provides us with the username and password (only shown for first time).
+
+# git clone https://git-codecommit.eu###
+
+
+
+***** CodeCommit - Clone, add, commit, push
+# git status - Shows all untracked files
+# git add . - to track all files (include files to futture commits)
+# git commit -m "first commit" - commit to git
+# git push - commit to upstream
+
+click on commits - > shows the commit that were made
+branches - shows the last branch
+
+
+***** CodeCommit - Branches and pull requests
+master - default branch when we create a repository
+If other developers are using the same repo, if all want to contribute, there may be conflict. branches in this case comes in handy
+branches - way to diverge from master or other branch
+# git checkout -b my-feature -> to create new branch
+# git add .
+# git push origin my-feature
+
+Pull requests
+
+
+***** CodeCommit - Securing the repository and branches
+https://docs.aws.amazon.com/codecommit/latest/userguide/how-to-conditional-branch.html
+Master - considered to be working version of code, should not push codes directly to master. Best practise is to use branches
+How to limit the use of master-
+- Limit pushes and merges to brances in AWS CodeCommit.
+(a) Configure an IAM policy to limit pushes and merges to a branch.
+attach an inline polcy >> custompolicy
+Policyname - cannotpushcode to master
+(paste the policy)
+
+In IAM "deny" takes precedence over allow.
+
+# git checkout master
+
+
+***** CodeCommit - Triggers and Notifications
+-CodeCommit repo - branches - notifications
+*create notificationname / Events that trigger notifications / Set SNS as targets
+
+Triggers - are bit different from notifications (Can trigger automation/lambda)
+choose type of events / specify branch name / SNS -> Create trigger
+
+CloudWatch -> CloudWatch events
+CloudWatch awscodestarnotifications-rule is the one that actually facilitates all the notifications in AWS Codecommit
+
+We can create rules to invoke Targets based on events happening in your AWS environment.
+
+By creating notification rules in codecommit, we can automate whatever is happening with repo straight into automation.
+
+
+***** CodeCommit - And AWS Lambda
+https://docs.aws.amazon.com/codecommit/latest/userguide/how-to-notify-lambda.html
+
+
+***** CodeBuild - Overview
+- Fully managed build service
+- Alternative to other build tools such as Jenkins
+- Continuous scaling (no servers to manage or provision - no build queue)
+- Pay for usage the time it takes to complete the builds
+- Leverages Docker under the hood for reproducible builds
+- Possibilities to extend capabilities leveraging our own base docker images
+- Secure: Integration with KMS for encryption of build artifacts, IAM for build permissions, and VPC for network security, CloudTrial for API calls logging.
+
+- Source code from Github/CodeCommit/CodePipeline/S3
+- Build instructions can be defined in code (buildspec.yml) file.
+- Output logs to Amazon S3 and AWS CloudWatch logs
+- Metrics to monitor CodeBuild Statistics
+- Use CloudWatch events to detect failed builds and trigger notifications
+- Use CloudWatch alarms to notify if you need "thresholds" for failures.
+- CloudWatch events/AWS Lambda as a glue
+- SNS notofications
+
+
+***** CodeBuild - First build
+
+
+***** CodeBuild - buildspec.yaml deep dive
+https://docs.aws.amazon.com/codebuild/latest/userguide/build-spec-ref.html
+File Anotomy:
+(a) Version - tells to how to execute the code
+(b) Phases - During codebuild stages
+     - Install : Installing runtime
+     - Pre_build: any setup we need, like config file etc. (list of comments)
+     - build: What we do to build or test application, we can setup many commands.
+     - Post_build: if we have created artifacts in build we can use postbuild to push the artifact to source code repo.
+
+There are different phases in CodeBuild
+
+We can set-up commands and finally section, the commands listed in finally section is to run irrespective of the status of the command from command section (success/failure)
+
+Artifacts - Are bunch of files that we can specify, these are what will be kept after build is done.
+
+Cache files - allows us to speed up deployment.
+
+
+***** Codebuild - Docker, ECR and buildspec
+Must: https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker.html
+
+
+***** CodeBuild - Environment variables and parameter store
+Environment variables can be used in CodeBuild to create more dynamic builds.
+We can customize and use our own environment variables.
+
+
+***** CodeBuild - Artifacts and S3
+Build outputs are artifacts.
+
+
+***** CodeBuild - CloudWatch Events, CloudWatch logs, CloudWatch metrics and triggers
+Any time a build is run, we have the logs pushed to CloudWatch log groups.
+
+
+***** CodeBuild - Validating CodeCommit pull requests
+https://aws.amazon.com/blogs/devops/validating-aws-codecommit-pull-requests-with-aws-codebuild-and-aws-lambda/
+
+
+***** CodeDeploy - Introduction and overview
+AWS CodeDeploy
+- We want to deploy our application automatically to many EC2 instances
+- There are several ways to handle deployments using open source tools (Ansible, Terraform, Chef, Puppet etc)
+- We can use the managed service AWS CodeDeploy
+
+Steps to make it work
+- Each EC2 machine (or on-premise machine) must be running the CodeDeploy agent.
+- The agent is continuously polling AWS CodeDeploy for work to do
+- CodeDeploy sneds appspec.yml file
+- Application is pulled from GitHub or S3
+- EC2 will run the deployment instructions
+- CodeDeploy agent will report of success/failure of deployment on the instance.
+- Ec2 instances are grouped by deployment group (dev/test/prod)
+- Lots of flexibility to define any kind of deployments
+- CodeDeploy can be chained into CodePipeline and use artifacrs from there
+- CodeDeploy can re-use existing setup tools, works with any application, auto scaling integration
+- Note: Blue/green only works with EC2 instances (not on premise)
+- Support for AWS Lambda deployments EC2
+- CodeDeploy does not provision resources
+
+
+***** CodeDeploy - EC2 setup
+
+
+***** CodeDeploy - Application, Deployment groups and first deployment
+Deployment group represents group of EC2 instances
+Deployment type
+(a) In-place
+(b) Blue/greeen
+
+
+***** CodeDeploy - Discussion on deployment groups
+
+
+***** CodeDeploy - Deployment configuration
+
+
+***** CodeDeploy - appspec.yml deep dive
+hooks - are scripts that will be run while deployment is happening for instances
+
+
+***** CodeDeploy - Hooks and environemnt variables
+https://docs.aws.amazon.com/codedeploy/latest/userguide/reference-appspec-file-structure-hooks.html
+
+hooks for ec2 and on-prem environment
+- ApplicationStop
+- DownloadBundle
+- BeforeInstall
+- Install
+- AfterInstall
+- ApplicationStart
+- ValidateService
+All traffic related are for load balancers to allow/block traffic.
+
+There are some hooks that can be created by users and others that cannot be created by users For example, 
+(a) Hooks that can be created by user
+- ApplicationStop
+- BeforeInstall
+- AfterInstall
+- ApplicationStart
+- ValidateService
+
+Environment variables availability for hooks
+- Everytime we do deployment, we get env. variable
+
+
+***** CodeDeploy - CloudWatch events, CloudWatch logs, CloudWatch triggers
+https://docs.aws.amazon.com/codedeploy/latest/userguide/monitoring-cloudwatch-events.html
+
+
+***** CodeDeploy - Rollbacks
+(a) Automatic Rollback 
+(b) Manual rollback (restore to previous version)
+
+
+***** CodeDeploy - On-Premise Instance setup
+https://docs.aws.amazon.com/codedeploy/latest/userguide/instances-on-premises.html
+
+- Register an on-premises instances with CodeDeploy
+https://docs.aws.amazon.com/codedeploy/latest/userguide/on-premises-instances-register.html
+(a) Use an IAM user ARN to authenticate requests (if instances count is less)
+(b) Use an IAM role ARN to authenticate requests (For large number of instances)
+https://docs.aws.amazon.com/codedeploy/latest/userguide/register-on-premises-instance-iam-user-arn.html
+
+
+**** CodeDeploy - Deploy to AWS Lambda
+- Linear
+- Canary
+https://docs.aws.amazon.com/codedeploy/latest/userguide/deployment-steps-lambda.html
+
+
+***** CodePipeline - Overview
+- Continuous delivery
+- Visual Workflow
+- Source: GitHUb/CodeCommit/Amazon S3
+- Build: Codebuild/Jenkins etc.
+- Load testing: 3rd party tools
+- Deploy: AWS CodeDeploy/Beanstalk/Cloudformation/ECS
+- Made of stages:
+  - Each stage can have sequential actions and /or parallel actions
+  - Stages examples: Build/Test/Deploy/LoadTest/etc
+  - Manual approval can be defined in stage
+
+CodePipeline - Can be used to Orchestrate entire CICD pipeline.
+
+AWS CodePipeline Artifacts
+- Each pipeline stage can create "artifacts"
+- Artifacts are passes stored in Amazon S3 and passed on to the next stage.
+

@@ -1,0 +1,160 @@
+Session 8 - Metadata
+------------------------
+
+***** Metadata Introduction
+
+Metadata provides details about the cfn template
+
+Syntax:
+Metadata:
+  Instances:
+    Description: "Information about the instances"
+  Databases:
+    Description: "Information about databases"
+
+Example:
+Metadata:
+  Instances:
+    Description: My VM Instance
+
+
+We have three types of metadata keys which are listed below
+
+Metadata keys
+- AWS::CloudFormation::Designer
+- AWS::CloudFormation::Interface
+- AWS::CloudFormation::Init
+
+
+- AWS::CloudFormation::Designer
+   - Auto generated durng resources drag and drop to canvas
+
+
+- AWS::CloudFormation::Interface
+   - Used for Parameter grouping
+
+- AWS::CloudFormation::Init
+   - Used for application installation and configurations on our aws compute (EC2 instances)
+   - This is core and important feature of CloudFormation
+
+
+
+***** Metadata - Designer Metadata introduction
+Designer, visually depicts how our resources are laid out
+Designer automatically add this information when we use it to create view and update templated. its a system generated metadata.
+It defines the information about our resources such as their size and relative position in templae metadata. All layout information is stored in designer metadata.
+
+In designer we drag and drop the resources.
+When we create templates in designer, it enforces some basic relationships between resources to help us create valid template.
+We can also validate template directly in designer
+We can bring our template which we have written manually and validate in designer using valid template.
+
+Integrated editor:
+- We can make all our template modifications with this editor
+- It also provides the auto-complete feature that lists all property names for a resource so we dont need to memorize all the properties of a resource or refer documentation
+- We can use integrated editor to convert from JSON to YAML and vice versa.
+
+
+
+***** Metadata - Interface metadata introduction
+- When we create or update stacks in the console, the console lists input parameters in alphabetical order by their logical IDs
+- By using this key, we can define our own parameter grouping and ordering so that users can efficiantly specify parameter values
+- We can also define labels for parameters
+- A label is a friendly name or description that the console displays instead of a parameter's logical ID which helps users understand the values to specify for each parameter.
+
+Syntax:
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - ParameterGroup
+    ParameterLabels:
+      ParamterLabel
+
+
+Example:
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "EC2 Instance Configuration"
+        Parameters:
+          - InstanceType
+          - KeyName
+      - Label:
+          default: "Environment Configuration"
+        Parameters:
+          - EnvironmentName
+    ParameterLabels:
+      EnvironmentName:
+        default: "Which environment we are planning to create?"
+
+
+
+***** Metadata - Interface Metadata BAse template overview
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::Keyname
+    Description: Select the keypair
+  EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+
+Conditions:
+  CreateEIPForProd: !Equals [!Ref EnvironmentName, prod]
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "EC2 Instance Configuration"
+        Parameters:
+          - InstanceType
+          - KeyName
+          - AvailabilityZone 
+      - Label:
+          default: " Environment Configuration"
+        Parameters:
+          -  EnvironementName
+    ParameterLabels:
+      EnvironmentName:
+        default: "Which environment we are plaaning to create thisinstance?"
+      KeyName:
+        default: "Be aware that once keyname is selected we cannot change it"
+ 
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !Ref MyKeyName
+      SecurityGroups: !If [CreateDevSecurityGroup, [!Ref DevEnvSecurityGroup], !Ref 'AWS::NoValue']
+        
+  MyProdEIP:
+    Type: AWS::EC2::EIP
+    Condition: CreateEIPForProd
+    Properties:
+      InstanceID: !Ref MyEc2Instance

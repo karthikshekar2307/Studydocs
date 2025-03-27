@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Root Stack Template
+
+Parameters:
+
+# Nested VPC Stack details
+  # VPC Parameters
+  VpcBlock:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: VPC CIDR Range
+
+# Public Subnet
+  PublicSubnetBlock:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: Public SN CIDR
+
+# Private Subnet 01
+  PrivateSubnetBlock:
+    Type: String
+    Default: 10.0.2.0/24
+    Description: First Private Subnet
+
+# Private Subnet 02
+  PrivateSubnetBlock2:
+    Type: String
+    Default: 10.0.3.0/24
+    Description: Second Private Subnet
+
+#=============================================================================================
+
+Resources:
+
+# Resource definition for WebServer VPC Stack
+  WebServerVPC:
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: https://testbuck2307.s3.ap-southeast-2.amazonaws.com/Nested-Stack-VPC.yaml
+      Parameters:
+        VpcBlock: !Ref VpcBlock
+        PublicSubnetBlock: !Ref PublicSubnetBlock
+        PrivateSubnetBlock: !Ref PrivateSubnetBlock
+        PrivateSubnetBlock2: !Ref PrivateSubnetBlock2
+
+  LoadBalancerGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: WebServer Load Balancer Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+      VpcID: !GetAtt WebServerVPC.Outputs.WebServerVPC
+
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: WebServer Security Group
+      VpcID: !GetAtt WebServerVPC.Outputs.WebServerVPC
+  WebServerIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref WebServerSecurityGroup
+      IpProtocol: tcp
+      FromPort: '80'
+      ToPort: '80'
+      SourceSecurityGroupId: !Ref LoadBalancerGroup
+
+Outputs:
+  LoadBalancerGroup:
+    Description: Load Balancer Group
+    Value: !Ref LoadBalancerGroup
+  WebServerSecurityGroup:
+    Description: Web Server Group
+    Value: !Ref WebServerSecurityGroup

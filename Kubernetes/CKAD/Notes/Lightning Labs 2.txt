@@ -1,0 +1,111 @@
+1. We have deployed a few pods in this cluster in various namespaces. Inspect them and identify the pods which is not in a ready state.
+# kubectl get pods --all-namespaces
+# kubectl describe pod nginx1401 -n dev1401
+# kubectl get pod nginx1401 -n dev1401 -oyaml > nginx1401.yaml
+< update readiness probe to port 9080 >
+<all liveness probe>
+livenessProbe:
+  exec:
+    command:
+      - ls
+      - /var/www/html/file_check
+    initialDelaySeconds: 10
+    periodSeconds: 60
+
+# kubectl replace -f nginx1401.yaml --force
+# kubectl get pod --all-namespaces
+
+2. Create a cronjib called dice that runs every one minute. Use the pod template located at /root/throw-a-dice randomly returns a value between 1 and 6.
+The result of 6 is considered success and all othes are failure. The job should be non-parallel and complete the task once. Use a backofflimit of 25.
+if the task is not completed in 20 seconds the job should fail and pods should be terminated.
+# vi dicejob.yaml
+apiVersion: batch/v1
+kind: cronjob
+metadata:
+  name: hello
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: hello
+            image: busybox:1.28
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - date; echo Hello from the kubernetes cluster
+
+3. Create a pod called my-busybox in dev2406 namespace using the busybox image. The container should be called secret and should sleep for 3600 seconds. The container should mount
+a read-only secret volume called secret-volume at the path /etc/secret-volume. 
+The secret being mounted has already been created for you and is called dotfile-secret.
+make sure that the pod is scheduled on controlplane and no other node in the cluster
+# kubectl run my-busybox --image=busybox --dry-run=client -oyaml > my-busybox.yaml
+# vi mybusybox.yaml
+namespace: dec2406
+
+spec:
+  volumes:
+    - name: secret-volume
+      secret:
+        secretName: dotfile-secret
+  containers:
+  - image: busybox
+    name: secret
+    command:
+      - sleep
+      - "3600"
+    volumeMounts:
+      - name: secret-volume
+        readOnly: true
+        mountPath: /etc/secret-volume
+
+# kubectl create -f mybusybox.yaml
+
+
+4. Create a singele ingress resource called ingress-vh-routing. The resource should route HTTP traffic
+to multiple hostnames as specified below:
+the service video-service should be accessible on http://watch.ecom-store.com:30093/video
+the service apparels-service should be accessible on http://apparels.exom-store.com:30093/wear
+here 30093 is the port used by the ingress controller.
+# vi ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-vh-routing
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx-example
+  rules:
+    - host: watch.ecom-store.com:30093
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/video"
+            backend:
+              service:
+                name: video-service
+                port:
+                  number: 8080
+     - host: apparels.ecom-store.com
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/wear"
+            backend:
+              service:
+                name: apparels-service
+                port:
+                  number: 8080
+# kubectl apply -f ingress.yaml
+
+
+5. A pod called dev-pod-dind-878516 has been deployed in the default namespace. 
+Inspect the logs for the container called log-x and redirect the warnings to 
+/opt/dind-878516_logs.txt on the controlplane node.
+# kubetl get pods
+# kubectl logs dev-pod-dind-878516 -c log-x | grep WARNING > /opt/dind-878516_logs.txt
+

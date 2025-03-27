@@ -1,0 +1,109 @@
+Session 9 - Design and implement cluster
+----------------------------------------
+
+***** Design a kubernetes cluster
+Purpose
+
+(a) learning
+minikube
+single node cluster kubeadm/GCP/AWS
+
+(b) Production
+High availability multi nide cluster with multiple master nodes
+Kubeadm or GCP or Kops on AWS or other supported platforms
+Up to 5000 nodes
+Upto 150000 PODs in the cluster
+Upto 300000 total containers
+Upto 100 PODs per node.
+
+Storage:
+High performance - SSD backed storage
+Multiple concurrent connections - Network based storage
+Persistent shared volumes for shared access across multiple PODs
+Label nodes with specific disk types
+Use node selectors to assign applications to nodes with specific disk types
+
+Nodes
+Virtual or physical machines
+minimum of 4 node cluster
+MAster vs worker nodes
+Linux x86_64
+
+Master nides can host workloads
+Best paractise is to not host workload
+
+
+***** Choosing kubernetes infrastructure
+
+***** Configure High Availability in Kubernetes
+When you loose master, until workers are active and containers are alive, your applications are still running.
+Users can access the application, until things start to fail. If Pod which is part of replication set fails. it does not get scheduled.
+
+Master hosts controller plane components
+
+In HA, there will be multiple master
+
+API server can be active on all master nodes in Active-Active mode.
+
+Load balancer can be configured in front of masters (nginx/Ha-proxy)
+
+Controller Manager and Scheduler needs to run in Active/Standby mode.
+
+Leader election process.
+# kube-controller-manager --leader-elect true [other options]
+                          --leader-elect-lease-duration 15s
+                          --leader-elect-renew-deadline 10s
+                          --leader-elect-retry-period 2s
+
+
+ETCD - Two topologies can be setup for ETCD
+Stacked topology
+
+ETCD is seperated - External ETCD topology
+
+Where do we specify where etcd server is?
+# cat /etc/systemd/system/kube-apiserver.service
+--etcd-servers=https://10.240.0.10:2379,https://10.240.0.11:2379
+
+ETCD is a distributed system
+
+
+***** ETCD in HA
+One node the write requests are allowed and among the nodes leader will be elected.
+Writes come in through leader node and will be shared with followers
+
+Write is only complete after confirmed by followers
+
+How will be the leader elected?
+ETCD implements distributed consensus (Leader election RAFT protocol)
+When a cluster is setup we dont have leader elected. RAFT uses random timer initiating requests. Random timer is kicked of by managers. The first one to finish sends out timer to other nodes requesting permission to be leader. The other managers after receiving the request responds with their vote and node assumes the leader role. After assuming leader it sends out alerts to other nodes to make sure that it is continuing to assume leader role. In case the other nodes are not receiving notifications from leader, at some point in time, nodes initiate re-election process and a new leader is identified.
+
+A write is only complete after its been written to majority of the nodes in cluster.
+
+Majority/Quorum
+N/2+1
+
+- Getting started
+# wget -q --https-only "https://github.com/coreos/etcd/releases/download/v3.3.9/etcd-v3.3.9-linux-amd64.tar.gz"
+# tar xvf etcd-v3.3.9-linux-amd64.tar.gz
+# mv etcd-v3.3.9-linux-amd64/etcd* /usr/local/bin
+# mkdir -p /etc/etcd /var/lib/etcd
+# cp ca.pem kuberentes-key.pem kubernetes.pem /etc/etcd/
+
+etcd.service
+--initial-cluster peer1=https://
+
+
+etcdctl - 2 API versions
+2 - default
+3 - we will use
+# export ETCDCTL_API=3
+# etcdctl put name john
+# etcdctl get name
+# etcdctl get / --prefix --keys-only
+
+How many nodes our cluster need to have
+In a HA environment, minimum=3
+
+
+***** Installing Kubernetes the hard way

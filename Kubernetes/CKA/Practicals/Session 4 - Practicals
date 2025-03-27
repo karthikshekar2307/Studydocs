@@ -1,0 +1,164 @@
+Session 4 - Practicals
+-----------------------
+
+**** Rolling updated and rollbacks
+
+# kubectl rollout status deployment/myapp-deployment
+# kubectl rollout history deployment/myapp-deployment
+# kubectl set image deployment/myapp-deployment nginx=nginx1.19
+# kubectl describe deployment
+Rollout status
+# kubectl rollout status deployment/myapp-deployment
+
+history
+# kubectl rollout history deployment/myapp-deployment
+
+rollout undo
+# kubectl rollout undo deployment/myapp-deployment
+
+to Undo
+# kubectl rollout undo deployment/myapp-deployment
+
+
+***** Commands and arguements
+# vi pod-definition.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu-sleeper-pod
+spec:
+  containers:
+    - name: ubuntu-sleeper
+      image: ubuntu-sleeper
+      args: ["10"]
+
+args option -> we are overriding CMD
+
+# vi pod-definition.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ubuntu-sleeper-pod
+spec:
+  containers:
+    - name: ubuntu-sleeper
+      image: ubuntu-sleeper
+      command: ["sleep2.0"]
+      args: ["10"]
+
+
+***** Configure environment variables
+env:
+  - name: APP_COLOR
+    valueFROM:
+      configMapKeyRef:
+
+env:
+  - name: APP_COLOR
+    valueFrom:
+      secretKeyRef:
+
+
+***** Configure configmaps
+- Imperative
+# kubectl create config <config-name> --from-literal=key=value
+# kubectl create config appconfig --from-literal=color=blue --from-literral=mod=prod
+
+another example is to take vales from a file
+# kubectl create configmap config-name --from-file=<path_to_file>
+# kubectl create configmap app-config --from-file=app_config.properties
+
+- Declarative
+# kubectl create -f
+
+Create a definition file
+config-map.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_COLOR: blue
+  APP_MODE: prod
+
+# kubectl create -f config-map.yaml
+
+View config maps
+# kubectl get configmaps
+
+# kubectl describe configmaps
+
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    name: webapp-color
+  name: webapp-color
+  namespace: default
+spec:
+  containers:
+  - envFrom:
+    - configMapRef:
+         name: webapp-config-map
+
+
+***** Configuring secrets in applications
+ Imperative way
+# kubectl create secret generic <secret-name> --from-literal=key=value
+# kubectl create secret generic app-secret --from-literal=DB_Host=mysql
+
+To use the value from a file
+# kubectl create secret generic <secret-name> --from-file=<path_to_file>
+# kubectl create secret generic app-secret --from-file=app_secret.properties
+
+- To make it secured, you must specify the value in hashed format.
+To convert
+# echo -n 'mysql' | base64
+# echo -n 'root' | base64
+# echo -n 'password' | base64
+
+# kubectl get secrets
+# kubectl describe secrets
+# kubectl get secrets app-secret -o yaml
+
+to decode
+# echo -n "vale" |base64 --decode
+
+
+**** Practise test
+
+- View log file in a container of pod
+kubectl -n elastic-stack exec -it app cat /log/app.log
+
+- create sidecar container
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app
+  namespace: elastic-stack
+  labels:
+    name: app
+spec:
+  containers:
+  - name: app
+    image: kodekloud/event-simulator
+    volumeMounts:
+    - mountPath: /log
+      name: log-volume
+
+  - name: sidecar
+    image: kodekloud/filebeat-configured
+    volumeMounts:
+    - mountPath: /var/log/event-simulator/
+      name: log-volume
+
+  volumes:
+  - name: log-volume
+    hostPath:
+      # directory location on host
+      path: /var/log/webapp
+      # this field is optional
+      type: DirectoryOrCreate
+
+
+**** Init containers

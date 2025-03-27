@@ -1,0 +1,17 @@
+Session 7: Manage Kubernetes Operators
+-------------------------------------
+
+Operator SDK - It assist operator authors in bootstraping building testing packaging their own operator
+
+olm: that controlls installation, upgrade and RBAC of operator in cluster (deployed by default)
+
+Operator registry: it the cluster csv (cluster service version) and crd (custom resource definition)
+for the creation in cluster and stores operators metadata about packages and channels
+
+Operator Hub: it is the web console for the cluster admin, to discover and select the
+operator to be installed in the cluster.
+
+community operators
+certified operators
+redhat operators (operators that are supported by openshift and also supported by entitlements)
+

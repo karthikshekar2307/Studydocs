@@ -1,0 +1,25 @@
+***** Ansible Vault
+
+Ansible allows keeping sensitive data like passwords or key in encrypted file rather than plain text.
+
+How to create?
+# ansible-vault create testvault.yaml
+<will ask fir password
+
+to edit
+# ansible-vault edit testvault.yaml
+
+Ansible user can edit the file
+
+reset the password
+ansible-vault rekey testvault.yaml  
+
+run the playbook
+# ansible-playbook testvault.yaml --ask-vault-pass
+
+decrypt the file
+# ansible-vault decrypt testvault.yaml
+
+encrypt
+# ansible-vault encrypt testplay.yaml
+

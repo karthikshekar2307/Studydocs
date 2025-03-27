@@ -1,0 +1,43 @@
+***** Session 1 - Getting started and Setting up Labs
+------------------------------------------------------
+
+**** Choosing IAAC
+There are various types of tools that can allow you to deploy infrastructure as code
+- Terraform
+- CloudFormation
+- Heat
+- Ansible
+- Saltstack
+- Chef, puppet and others
+
+Ansible, check, puppet - are configuration manangement tools which means that they are primarily desined to install and manage software on existing servers
+
+Terraform, cloudformation are the infrastructure orchestration tools which basically means they can provision the servers and infrastructure by themselves
+
+Configuration management tools can do some degree of infrastructure provisioning, but the focus here is that some tools are going to be better fit for certain types of tasks.
+
+
+IAAC and configuration manangement = Friends
+
+Once we start the terraform configuration, it reaches provider and creates the resource, once the signal is received that confirms the resource creation, terraform can call ansible to perform configuration manangement.
+
+Questions to be asked while choosing IAAC tool
+- Is your infrastructure going to be vendor specific long term?
+- Are you planning to have multi-cloud / hybrid cloud based infrastructure
+- How well does it integrate with configuration management tools
+- Price and support
+
+Terraform features
+- Supports multiple platform, has hundred of providers
+- Simple configuration language and faster learning curve
+- Easy integration with configuration manangement tools like Ansible
+- Easily extensible with help of plugins
+- Free
+
+
+***** Installing Terraform
+https://www.terraform.io/downloads.html
+- MacOS
+# cp terraform /usr/local/bin
+
+

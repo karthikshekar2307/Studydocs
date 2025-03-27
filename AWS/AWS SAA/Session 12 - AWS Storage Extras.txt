@@ -1,0 +1,121 @@
+***** AWS Snow Family overview
+- Highly secure, protable devices to collect and process data at the edge and migrate data into and out of AWS
+- Data migration:
+snowcone
+snowball edge
+snowmobile
+- Edge computing:
+snowcone
+snowball edge
+
+***** Snowball into glacier
+- Snowball cannot import to Glacier directly
+- You must use Amazon S3 first, in combination with an S3 lifecycle policy
+
+
+***** Amazon FSx
+- FSx for luster
+- FSx for windows file server
+- FSx for NetApp ONTAP
+- FSx for OpenZFS
+
+FSx for windows file server
+- FSx for windos is fully managed windows file system shared drive
+- Supports SMB protocol and windows NTFS
+- Microsoft Active directory integration, ACLs, user quotas
+- can be mounted on Linux EC2 instances
+- Supports microsoft's distributed file system (DFS) namespaces
+- Scale up to 10s of GBs/sec, millions of IOPS, 100s PB of data
+- Storage options:
+SSD - latency sensitive workloads
+HDD - broad spectrum of workloads
+- can be accessed from your premises infrastrucure (VPN or Direct Connect)
+
+FSx for Luster
+- Luster is a type of parallel distributed file system, for large scale computing
+- The name Lustre is derived from "Linux" and "cluster"
+- Machine learning, HPC
+- Video processing, Financial modeling, electronic design automation
+- Scales up to 100s GB/s, millions of IOPS, sub-ms latencies
+- Storage Options:
+SSD: low-latency, IOPS intensive workloads, small and random file operations
+HDD: Throughput intensive workloads, large and sequential file operations
+- Seemless integration wth S3
+Can read S3 as a filesystem (through FSx)
+can write the output of the computations back to S3
+- Can be used from on-premises servers (VPN or Direct connect)
+
+Scratch filesystem
+- Temporary Storage
+- No replication
+
+Persistent file system
+
+Amazon FSx for NetApp Ontap
+
+Amazon FSx for OpenZFS
+
+
+***** Storage Gateway overview
+Hybrid cloud for Storage
+Bridge between on-premises data and cloud data
+
+Use cases
+- disaster recovery
+- backup and restore
+- tiered Storage
+- on-premises cache and low-latency files access
+
+- Types for storage gateway
+S3 file gateway
+FSx file gateway
+Volume gateway
+Tape Gateway
+
+Volume Gateway
+- Block storage using iSCSI protocol backed by s3
+- backed by EBS snapshots which can help restore on-premises volumes
+- cached volumes: low latency access to most recent data
+- stored volumes: entire dataset is on premise, scheduled backups to S3
+
+
+**** AWS Transfer Family
+- A fully managed service for file transfers into and out of AWS S3 or EFS using the FTP protocol
+- Supported protocols
+AWS transfer for FTP
+AWS transfer for FTPS
+AWS transfer for SFTP
+- managed infrastructure, scalable reloable andd highly available
+- pay per provisioned endpoint per hour + data transfers in GB
+- Store and manage users credentials within the service
+- Integrate with existing authentication systems (Microsoft active directory, LDAP, Okta, Amazon Cognito, custom)
+- Usage: sharing files, public datasets, CRM, ERP
+
+***** Datasync
+- Move large amout of data to and from
+On-premises/other cloud to AWS
+AWS to AWS
+- Can synchronize to
+Amazon S3
+Amazon EFS
+Amazon FSx
+- REplication tasks can be scheduleed hourly, daily, weekly
+- Transfer between AWS storage services
+
+***** All AWS storage options compared
+- S3 - object storage
+- 33 Glacier
+- EBS Volumes
+- Instance storage
+- EFS
+- FSx for windows
+- FSx for Lustre
+- FSx for netApp Ontap
+- FSx for OpenZFS
+- Storage Gateway
+- Transfer family
+- Datasync
+- Snowcone
+- Database
+
+

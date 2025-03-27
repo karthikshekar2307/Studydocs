@@ -1,0 +1,383 @@
+***** Lab1
+---
+(a) create PV
+vi log-volume.yaml
+----
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: log-volume
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: /opt/volume/nginx
+
+# kubectl create -f log-volume.yaml
+
+# kubectl get pv
+
+- create PVC
+# vi log-claim.yaml
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: log-claim
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 200Mi
+  storageClassName: manual
+----
+
+# kubectl apply -f log-claim.yaml
+
+- Mount pvc on a pod
+# kubeclt run logger --image=nginx:alpine --dry-run=client -o yaml > logger.yaml
+# vi logger.yaml
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: logger
+spec:
+  containers:
+  - image: nginx:alpine
+    name: logger
+    volumeMounts:
+      - name: log
+        mountPath: /var/www/nginx
+  volumes:
+    - name: log
+      persistentVolumeClaim:
+        claimName: log-claim
+----
+
+# kubectl create -f logger.yaml
+
+
+Question 2:
+We have deployed a new pod called secure-pod and service called secure-service. Incoming or outgoing connections to this pod are not working
+
+Answer:
+# kubectl get pod
+# kubectl get svc
+
+# kubectl exec -it webapp-color -- sh
+# nc -v -z -w 2 secure-service 80
+
+# kubectl get netpol
+# kubeclt describe netpol
+
+- create newwork policy
+# kubectl get pod --show-labels
+
+# kubectl get netpol default-deny -o yaml > netpol.yaml
+---
+vi netpol.yaml
+
+apiVersion: v1
+kind: NetworkPolicy
+metadata:
+  name: network-policy
+spec:
+  podSelector:
+    matchLabels:
+      run=secure-pod
+  policyTypes:
+  - Ingress
+  ingress:
+    - from:
+        - podselector:
+            matchLabels:
+              name: webapp-color
+      ports:
+        - protocol: TCP
+          port: 80
+
+# kubectl apply -f netpol.yaml
+
+# kubectl exec -it webapp-color -- sh
+# nc -v -z -w 2 secure-service 80
+
+
+Question 3:
+Create a pod called time-check in the dvl1987 namespace. This pod should run a container called time-check tghat uses the busybox image.
+create a config map called time-config with the data TIME_FREQ=10 in the same namespace. The time-check container should run the command:
+# while true; do date; sleep $TIME_FREQ;done
+and write the result to the location /opt/time/time-check.log. 
+The path /opt/time on the pod should mount a volume that lasts the lifetime of this pod.
+
+Answer:
+# kubectl get ns
+# kubectl create ns dvl1987
+# kubectl create cm time-config -n dvl1987 --from-literal=TIME_FREQ=10
+# kubectl get cm -n dvl1987
+# kubectl run time-check --image=busybox --dry-run=client -o yaml > time-check.yaml
+
+vi time-check.yaml
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: time-check
+  name: time-check
+  namespace: dvl1987
+spec:
+  volumes:
+    - name: log-volume
+      emptyDir: {}
+  containers:
+  - image: busybox
+    name: time-check
+    command: ["/bin/sh", "-c", "while true; do date; sleep $TIME_FREQ;done > /opt/time/time-check.log"]
+    volumeMounts:
+      - name: log-volume
+        mountPath: /opt/time
+    env:
+      - name: TIME_FREQ
+        valueFrom:
+          configMapKeyRef:
+            name: time-config
+            key: TIME_FREQ
+
+# kubectl create -f timecheck.yaml
+
+
+Question 4:
+Create a new deployment called nginx-deploy with one single container called nginx, image nginx:1.16 and 4 replicas.
+The deployment should use RollingUpdate strategy with maxSurge=1, and maxUnavailable=2
+Next upgrade the deployment to version 1.17
+Finally, once all pods are updated, undo the update and go back to the previous version.
+
+Answer:
+# kubectl create deploy nginx-deploy --image=nginx:1.16 --replicas=4 -dryrun=client -o yaml > nginx-deployment.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx-deploy
+  name: nginx-deploy
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: nginx-deploy
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 2
+  template:
+    metadata:
+      labels:
+        app: nginx-deploy
+    spec:
+      containers:
+      - image: nginx:1.16
+        name: nginx
+
+# kubectl apply -f nginx-deployment.yaml
+
+# kuebctl get deploy
+
+# kubectl set image deployment nginx-deploy nginx=nginx:1.17
+
+# kubectl get pod
+
+# kubectl get deploy
+
+# kubectl rollout undo deployment nginx-deploy
+
+
+Question 5:
+Create a redis deployment with the following parameters:
+Name of the deployment should be = redis, using the redis:alpine image. It should have exactly 1 replica
+The container should request for .2 CPU. It should use the label app=redis.
+It sould mount exactly 2 volumes.
+(a) An empty directoty volume called data at path /redis-master-data
+(b) A configmap volume called redis-config path /redis-master
+(c) The container should expose the port 6379.
+
+Answer:
+# kubectl create deploy redis --image=redis:alpine --replicas=1 --dry-run=client -o yaml > redis.yaml
+# vi redis.yaml
+----
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: redis
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  strategy:
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: redis-config
+          configMap:
+            name: redis-config
+      containers:
+      - image: redis:alpine
+        name: redis
+        resources:
+          requests:
+            cpu: "0.2"
+        volumeMounts:
+          - name: data
+            mountPath: /redis-master-data
+          - name: redis-config
+            mountPath: /redis-master
+        ports:
+          - containerPort: 6379
+
+# kubectl apply -f redis.yaml
+ 
+
+***** Lab2
+Question 1: Inspect the pods in different namespaces. Identify the pods that are not in ready state.
+Troubleshoot and fix the issue.
+Next, add a check to restart the container on the same pod if the command ls /var/www/html/file_check fails. This check should start after a delay of 10 seconds and run every 60 seconds
+Answer:
+# kubectl get pod --all-namespaces
+(check the pod with issue)
+
+# kubectl describe pod nginx 
+(look at events)
+
+# kubectl get pod nginx -n dev1401 --dry-run=client -o yaml > pod.yaml
+(change the port to match containerPort)
+
+add
+livenessProbe:
+  exec:
+    command:
+      - ls
+      - /var/www/jhtml/file_check
+  initialDelaySeconds: 10
+
+# kubectl replace -f nginx
+
+Question 2: Create a cronjob called dice that runs every one minute. Use the Pod template located at /root/throw-a-dice.
+The image throw-dice randomly returns a value between 1 and 6. The result of 6 is considered success and all others are failure.
+The Job should be non-parallel and complete the task once. USe a backoffLimit of 25. If the task is not completed within 20 seconds the job should fail and pods should be terminated.
+Answer:
+Copy cron template
+
+Vi dice-job.yaml
+---
+apiVersion: batch/v1beta1
+kind: cronjob
+metadata:
+  name: dice
+spec:
+  schedule: "*/1  *  *  *  *"
+  jobTemplate:
+    spec:
+      completions: 1
+      backoffLimits: 25
+      activeDeadlineSeconds: 20
+      template:
+        spec:
+          containers:
+          - name: dice
+            image: kodekloud/throw-dice
+            imagePullPolicy: IfNotPresent
+          restartPolicy: never
+
+
+Question 3:
+Create a Pod called my-busybox in the dev2406 namespace using the busybox image. The containershould mount a read-only secret volume called secret-volume at the path /etc/secret-volume at the path /etc/secret-volume.
+The secret being mounted has alrey been created for you and is called dotfile-secret. Make sure pod is scheduled on controlplane.
+
+Answer:
+# kubectl run my-busybox --image=busybox --dryrun -o yaml > bys.yaml
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: my-busybox
+  name: my-busybox
+  namespace: dev2406
+spec:
+  nodeName:  controlplane
+  volumes:
+    - name: secret-volume
+      secret:
+         secetName: dotfile-secret
+  containers:
+  - image: busybox
+    name: secret
+    command:
+      - sleep
+      - "3600"
+    volumeMounts:
+      - name: secret-volume
+        readOnly: true
+        mountPath: /etc/secret-volume
+----
+# kubectl apply -f my-busybx.yml
+
+
+Question 4:
+Create a single ingress resource called ingress-vh-routing. The resource should route HTTP traffic to multiple hostnames as specified below:
+The service Video-service should be accessible on http://watch.ecom-store.com:30093/video The service apparels-service should be accessible on http://apparels.ecom-store.com:30093/wear here 30093/wear Here 30093 is the port used by the Ingress controller
+
+Answer:
+- Get manifest from k8 doc - ingress resource
+----
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-vh-routing
+  annotations:
+    nginx.ingress.kubnetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx-example
+  rules:
+    - host: watch.ecom-store.com
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/Video"
+            backend:
+              service:
+                name: video-service
+                port:
+                  number: 8080
+    - host: apparels.ecom-store.com
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/wear"
+            backend:
+              service:
+                name: apparels-service
+                port:
+                  number: 8080
+---
+
+
+Question 5:
+A pod called dev-pod-dind-878516 has been deployed in the default namespace.
+Inspect the logs for the container called log-x and redirect the warnings to /opt/dind-878516_log.txt on the controlplane node
+
+Answer:
+# kubectl logs dev-pod-dind-878516 -c log-x | grep WARNING > /opt/dind-878516_log.txt

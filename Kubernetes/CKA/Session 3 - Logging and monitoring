@@ -1,0 +1,77 @@
+Session 3 - Logging and monitoring
+-----------------------------------
+
+Logging and Monitoring section 
+------------------------------
+
+***** Monitor cluster components
+- What would you like to monitor
+(a) Node level metrics (such as - nodes in lcuster, health, CPU, memory disk)
+(b) PODS (performance CPU/memory)
+
+Solution for monitoring -> there is no default built in
+
+1. Heapster vs Metrics server
+heapster-> depricated
+metrics server-> newer one. collects metrics and stores it in memory. It is an In-memory based logs solution
+
+Metrics generated on Pods -> Kubernetes runs an agent on nodes known as - kubelet.
+
+kubelet also has a component called - cAdvisor or container advisor.
+
+cAdvisor is responsible for receiving performance metrics from POD and expose them via kubelet API to meet the metrics available in metrics server.
+
+For minikube:
+# minikube addons enable metrics-server
+
+Others:
+# git clone https://github.com/kubernetes-incubator/metrics-server
+# kubectl create -f deploy/1.8+/
+
+# kubectl top node
+
+# kubectl top pod
+
+
+***** Practise test - Monitoring
+
+
+***** Managing application logs
+various logging mechanisms
+
+# docker run kodekloud/event-simulator
+- simulates various events from web server 
+
+# docker logs -f ecf
+
+In Kubernetes
+vi event-simulator.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: event-simulator-pod
+spec:
+  containers:
+  - name: event-simulator
+    image: kodekloud/event-simulator
+
+# kubectl create -f event-simulator.yaml
+
+# kubectl logs -f event-simulator-pod
+
+
+vi event-simulator.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: event-simulator-pod
+spec:
+  containers:
+  - name: event-simulator
+    image: kodekloud/event-simulator
+  - name: image-processor
+    image: some-image-processor
+
+- If POd has multiple containers, in this case, we need to specify the name of the pod or else kubectl will fail
+# kubectl logs -f event-simulator-pod event-simulator
+

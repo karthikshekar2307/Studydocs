@@ -1,0 +1,57 @@
+Session 1 - Getting started with AWS
+--------------------------------------
+
+AWS History
+- 2002 internally launched
+- 2003 Amazon infrastructure is one of their core strength
+- 2004 Launched publicly SQS
+- 2006 Relaunched publicly with EC2
+
+
+use cases
+- enable you to build sophisticated scalable applications
+- Aplicable to a diverse set of industries
+- Use cases include
+  - Enerprise IT, abckup and storage, big data analytics
+  - website hosting, mobile and social apps
+  - Gaming
+
+
+AWS Global Infrastructure
+- AWS regions
+- AWS Availability zones
+- AWS Data centers
+- AWS Edge locations/point of presence
+
+
+AWS Regions
+- AWS has regions all around the world
+- Names can be us-east-1, eu-west-3....
+- A region is a cluster of data centers
+- Most AWS services are region-scoped
+
+
+How to choose an AWS region
+- Compliance: With data governance and legal requirements: data never leaves a region without your explicit permission.
+- Proximity to customers: reduced latency
+- Available services within a region: new services and new features aren't available in every region
+- Pricing: pricing varies region to region and is transparent in the service pricing page.
+
+AWS Availability zones
+- Each region has many availability zones (Usually 3, min is 2 and max is 6).
+- Each availability zone is one or more discrete data centers with redundant power, networking and connectivity.
+- They are seperated from each other, so that they're isolated from disasters.
+- They are connected with high bandwidth, ultra-low latency networking.
+
+
+AWS Points of presense (Edge locations)
+- Amazon has 216 points of presense (25 edge locations and 11 regional caches) in 84 cities across 42 countries
+- content is delivered to end users with low latency
+
+AWS has global services
+- IAM (Identity and access management)
+- Route 53 (DNS service)
+- CloudFront (Content delivery network)
+- WAF (Web application firewall)
+
+Most AWS servoces are region scoped

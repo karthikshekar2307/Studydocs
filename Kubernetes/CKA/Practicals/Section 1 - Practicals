@@ -1,0 +1,329 @@
+Section 1 - Practicals
+-----------------------
+
+**** ETCD
+
+1. etcd.service file
+--avertise-client-urls https://${INTERNAL_IP}:2379 \\
+This is the adress where etcd listens
+
+2 To list all keys stored by etcd
+# kubectl exec etcd-master -n kube-system etcdctl get / --prefix -keys-only
+
+3. In HA environment, you will have multiple master nodes in cluster you will have multiple etcd cluster is spread across multiple master nodes. You may need to set the correct cluster configuration option.
+
+"--initial-cluster-controller"
+
+4. So for the commands I showed in the previous video to work you must specify the ETCDCTL API version and path to certificate files. Below is the final form:
+# kubectl exec etcd-master -n kube-system -- sh -c "ETCDCTL_API=3 etcdctl get / --prefix --keys-only --limit=10 --cacert /etc/kubernetes/pki/etcd/ca.crt --cert /etc/kubernetes/pki/etcd/server.crt  --key /etc/kubernetes/pki/etcd/server.key" 
+
+
+***** KubeAPI server
+
+1. view kubeapi server options
+/etc/kubernetes/manifests
+
+In a non kubeadm deployment the service file is located at
+/etc/systemd/system/kube-apiserver.service
+
+2. non-kubeadm setup
+/etc/systemd/system/kube-apiserver.service
+
+3. Check kuberneted processes
+# ps -eaf |grep -i kube-apiserver
+
+
+***** Kube controller manager
+1.kube-controller-manager.service
+# kubectl get pods -n kube-system
+# cat /etc/systemd/system/kube-controller-manager.service
+
+
+***** Kube scheduler
+#/etc/kubernetes/manifests/kube-scehduler.yaml
+# ps -aux |grep -i kue-scheduler
+
+
+**** Kubelet
+kubelet is not deployed by "kubeadm" like other components. Kubelet binary needs to downloaded and installed
+ps -aux |grep -i kubelet
+
+
+***** Kube-proxy
+
+
+**** Pod
+# kubectl run nginx --image nginx 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+    type: front-end
+spec:
+  containers:
+    - name: nginx-container
+      image: nginx
+
+# kubectl create -f pod-definition.yml
+
+# kubectl get pods
+
+# kubectl decribe pod my-pod
+
+
+**** Demo POD
+vi pod-defintion.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+spec:
+  containers:
+    - name: nginx-container
+      image: nginx
+
+# kubectl get pods
+# kubectl describe pod myapp-pod
+
+**** Practical tests
+See how many pods
+# kubectl get pods
+
+create new pod
+# kubectl run nginx --image nginx
+
+To see the image used to create pod
+# kubectl describe pod <pod-name>
+
+To see which node Pods are placed on
+# kubectl get pods -o wide
+
+To see the number of containers part of the pod
+# kubectl describe pod webapp
+
+To view the status of POD
+# kubectl describe pod webapp
+<check event section>
+
+Ready column in kubectl get pods output shows, running number of container in pod/total containers n pod
+
+create a new POD and then change the image
+# kubectl run redis --image redis123
+# kubectl edit pod redis
+<change image name>
+
+
+***** ReplicaSets
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: myapp-rc
+  labels:
+    app: myapp
+    type: front-end
+spec:
+  template:
+    metadata:
+      name: myapp-pod
+      labels:
+        app: myapp
+        costcenter: amer
+    spec:
+      containers:
+        - name: nginx-container
+          image: nginx
+        - name: backend-container
+          image: redis
+  replicas: 3
+
+  # kubectl create -f rc-definition.yaml
+  # kubectl get replicationcontroller
+  # kubectl get pods
+
+
+- Replicaset
+apiVersion: apps/v1
+kind: ReplicSet
+metadata:
+  name: myapp-replicaset
+  labels:
+    app: myapp
+    type: front-end
+spec:
+  template:
+    metadata:
+      name: myapp-pod
+      labels:
+        app: myapp
+        costcenter: amer
+      spec:
+        containers:
+          - name: nginx-container
+            image: nginx
+          - name: backend-container
+            image: redis
+  replicas: 3
+  selector:
+    matchLabels:
+      type: front-end
+
+# kubectl create -f replicaset-definition.yaml
+
+Scale replica sets
+- update yaml file to have new replica number then,
+# kubectl replace -f replicaset-definition.yaml
+
+or
+# kubectl scale --replicas=6 -f replicaset-definition.yaml
+# kubectl scale --replicas=6 replicaset myapp-replicaset
+
+
+***** Practise tests - Replicaset
+To see desired pods in replicaset
+# kubectl describe rs new-replica-set
+
+
+***** Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-deployment
+  labels:
+    app: myapp
+    type: front-end
+spec:
+  template:
+    metadata:
+      name: myapp-pod
+      labels:
+        app: myapp
+        costcenter: amer
+      spec:
+        containers:
+          - name: nginx-container
+            image: nginx
+          - name: backend-container
+            image: redis
+  replicas: 3
+  selector:
+    matchLabels:
+      type: front-end
+
+# kubectl create -f deployment-definition.yaml
+# kubectl get deployments
+# kubectl get rs
+# kubectl get pods
+# kubectl get all
+
+**** Certification Tip
+# kubectl run nginx --image=nginx
+
+Generate POD Manifest YAML file (-o yaml). Don't create it(--dry-run)
+
+# kubectl run nginx --image=nginx --dry-run=client -o yaml
+
+Create a deployment
+
+# kubectl create deployment --image=nginx nginx
+
+Generate Deployment YAML file (-o yaml). Don't create it(--dry-run)
+
+# kubectl create deployment --image=nginx nginx --dry-run=client -o yaml
+
+Generate Deployment YAML file (-o yaml). Don't create it(--dry-run) with 4 Replicas (--replicas=4)
+
+# kubectl create deployment --image=nginx nginx --dry-run=client -o yaml > nginx-deployment.yaml
+
+
+**** Practise test
+Create new deployment
+# kubectl create deployment httpd-frontend --replicas 3 --image httpd:2.4-alpine
+
+***** Namespace
+# kubectl create -f pod-definition.yaml --namespace=dev
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+
+# kubectl create -f namespace-dev.yaml
+
+# kubectl create namespace dev
+
+To switch to a namespace permanently
+# kubectl config set-context $(kubectl config current-context) --namespace=dev
+
+# kubectl get pods --all-namespaces
+
+To limit resource in a namespace
+------------
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-quota
+  namespace: dev
+spec:
+  hard:
+    pods: "10"
+    requests.cpu: "4"
+    requests.memory: 5Gi
+    limits.cpu: "10"
+    limits.memory: 10Gi
+
+---------------
+
+***** Practise tests
+Create POD in a namespace
+# kubectl run redis --image redis -n finance
+
+
+***** Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+spec:
+  type: NodePort
+  ports:
+    - targetPort: 80
+      ports: 80
+      nodePort: 30008
+  selector:
+    matchLabels:
+      app: myapp
+      type: front-end
+
+# kubectl create -f service-definition.yaml
+# kubectl get services
+
+
+***** Practise tests - Services
+To check target port configured for service
+# kubectl describe services kbernetes
+
+Create a new service to access the web application using the service-definition-1.yaml file
+Name: webapp-service
+Type: NodePort
+targetPort: 8080
+port: 8080
+nodePort: 30080
+selector: simple-webapp
+
+
+***** Imperrive and declarative
+# kubectl edit deployment nginx
+# kubectl replace -f nginx.yaml
+
+Delete and recreate object
+# kubectl replace --force -f nginx.yaml
+
+
+***** Practise test - Imperitive
+Create a new pod called custom-nginx using the nginx image and expose it on container port 8080.
+# kubectl run custom-nginx --image=nginx --port=8080
+

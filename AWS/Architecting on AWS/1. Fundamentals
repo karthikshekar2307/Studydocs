@@ -1,0 +1,35 @@
+Amazon Web Services
+- Global data centers
+- More than 200 Services
+- Secure and robust
+- Pay as you Go
+
+AWS Infrastructure
+- Datacenter
+- AZ
+- Regions
+- edge locations
+- local zones
+
+
+Factires impacting region selection
+- Governance
+- Latency
+- Service availability
+- cost
+
+Well-architected framework
+Responsibities
+- Plan:  Set technical cloud strategy with business leads, Analyze solutions for business needs and requirement 
+- Research: investifate cloud services specs and workload, review exusting
+- Build
+
+Pillars:
+- Security
+- Cost optimization
+- Reliability
+- Performance efficiency
+- Operational excellance
+- sustainabiltiy
+
+AWS well architected tool

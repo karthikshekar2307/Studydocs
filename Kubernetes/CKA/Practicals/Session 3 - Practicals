@@ -1,0 +1,75 @@
+Session 3 - Practise
+---------------------
+
+**** Monitor cluster components
+For minikube:
+# minikube addons enable metrics-server
+
+Others:
+# git clone https://github.com/kubernetes-incubator/metrics-server
+# kubectl create -f deploy/1.8+/
+
+# kubectl top node
+
+# kubectl top pod
+
+
+**** Pracise test - Monitoring lab
+# kubectl get pods
+
+# git clone https://github.com/kubernetes-incubator/metrics-server
+
+# cd metrics-server
+
+# kubectl create -f . 
+
+# kubectl get pods
+
+# watch "kubectl top node"
+
+# kubectl top node
+(check cpu)
+(check memory)
+
+# kubectl top pod
+
+
+**** Managing application logs
+vi event-simulator.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: event-simulator-pod
+spec:
+  containers:
+  - name: event-simulator
+    image: kodekloud/event-simulator
+
+# kubectl create -f event-simulator.yaml
+
+# kubectl logs -f event-simulator-pod
+
+vi event-simulator.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: event-simulator-pod
+spec:
+  containers:
+  - name: event-simulator
+    image: kodekloud/event-simulator
+  - name: image-processor
+    image: some-image-processor
+
+- If POd has multiple containers, in this case, we need to specify the name of the pod or else kubectl will fail
+# kubectl logs -f event-simulator-pod -c event-simulator
+
+
+***** Practise test
+# kubectl get pods
+
+# kubectl logs -f webapp-1 |grep -i user5
+
+# kubectl get pods
+
+# kubectl logs -f webapp-1 -c simple-webapp

@@ -1,0 +1,60 @@
+***** Amazon ECS
+- ECS = Elastic Container service
+- Launch docker containers on AWS = launch ECS tasks on ECS clsuters
+- EC2 launch type: you must provision and maintain the infrastructure (the EC2 instances)
+- Each EC2 instance must run the ECS agent to register in the ECS cluster
+
+ECS - Fargate launch type
+- define ECS taks and AWS will run
+
+
+***** Amazon ECS - Autoscaling
+- Automcatically increase/decrease the desired number of ECS tasks
+- Amazon ECS autoscaling uses AWS application autoscaling
+- Accomodates ECS servie scaling by adding underlyng EC2 instanxcs
+
+- Autoscaling group scaling
+scale your ASG based on CPU utilization
+Add EC2 instances over time
+
+- ECS cluster capacity provider
+used to automaticaly provision and scale the infrastructure for your ECS tasks
+capacity provider paired with an AutoScaling group
+Add EC2 instances whrn you'e missing capacity
+
+
+
+***** Amazon ECS - solutions architectures
+- ECS tasks invoked by event bridge
+upload to s3 --- eventbridge ---(rule to run task) --- AWS fargate
+
+- ECS tasks invoked by Event brigde schedule
+event bridge---fargate ----s3
+
+- ECS - sQS queue example
+messagges -- SQS --
+
+- Incercpept stopped takss using eventbridge
+
+
+*****  Amazon ECR
+- Container registry
+- store and manage docker images on AWSProvate and public repositoru
+- fulluy integrate with ECS
+- Access is controlled through IAM
+- supports image vulnerabiltu scanning, versioning
+
+
+***** Amazon EKS 
+Manageed node groups
+Self managed nodes
+
+
+***** AWS App runner
+- easy to deploy web applications and APIs as scale
+- No infrastructure
+- Start with your source cide or container image
+- buils and deploy the web application
+- autosclaing, HA load baakncer
+- connct DB, cache
+

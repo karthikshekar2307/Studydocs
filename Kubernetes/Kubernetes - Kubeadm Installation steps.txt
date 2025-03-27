@@ -1,0 +1,170 @@
+Kubernetes - Kubeadm Installation steps
+-----------------------------------------
+
+# Install dependencies
+sudo apt-get update
+sudo apt-get install \
+  ca-certificates \
+  curl \
+  gnupg \
+  lsb-release
+
+# Add the signing keys
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# Add the repository
+echo \
+ "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+ $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Update and install
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo docker run hello-world
+
+# Manage as a non-root user
+sudo groupadd docker
+sudo usermod -aG docker $USER
+
+Mirantis cri-dockerd runtime
+# Ensure Docker service is running
+systemctl status docker
+
+# Install cri-dockerd using ready binary
+sudo apt update && \
+sudo apt install git wget curl
+
+# Download binary package
+VER=$(curl -s https://api.github.com/repos/Mirantis/cri-dockerd/releases/latest|grep tag_name | cut -d '"' -f 4|sed 's/v//g')
+echo $VER
+
+# Download archive file from cri-dockerd release
+wget https://github.com/Mirantis/cri-dockerd/releases/download/v${VER}/cri-dockerd-${VER}.amd64.tgz
+tar xvf cri-dockerd-${VER}.amd64.tgz
+===========
+If above errors, please check -  https://github.com/Mirantis/cri-dockerd/releases
+manually set version 
+$VER=latestversion, then run
+$ wget https://github.com/Mirantis/cri-dockerd/releases/download/v${VER}/cri-dockerd-${VER}.amd64.tgz
+
+# Move binary package to bin directory
+sudo mv cri-dockerd/cri-dockerd /usr/local/bin/
+
+# Validate
+cri-dockerd --version
+
+# Configure systemd units for cri-dockerd
+wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.service
+wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.socket
+sudo mv cri-docker.socket cri-docker.service /etc/systemd/system/
+sudo sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+
+# Start and enable the services
+sudo systemctl daemon-reload
+sudo systemctl enable cri-docker.service
+sudo systemctl enable --now cri-docker.socket
+
+# Confirm the service is running
+systemctl status cri-docker.socket
+
+Install Kubernetes with Kubeadm
+# Update the apt package
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl
+
+# Download the Google Cloud public signing key
+sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+
+# Add the apt repository
+echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | \
+sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+# install kubeadm kubelet kubectl
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+***** For abov steps, if there are errors, follow - https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/#install-using-native-package-management
+
+
+Post Installation Steps
+# Install net-tools
+sudo apt-get update && \
+sudo apt install net-tools
+
+# Add the NAT IP address to the /etc/hosts file
+ifconfig
+enp0s8: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+       inet xxx.xxx.xxx.xxx  netmask 255.255.255.0 ...
+
+(copy the NAT IP address inet xxx.xxx.xxx.xxx)
+
+sudo nano /etc/hosts
+
+add the NAT address to the etc/hosts (Note: delete the host address for 127.0.1.1 hostname, to avoid networking conflict)
+
+
+# Turn off and disable swap
+sudo swapoff -a
+sudo nano /etc/fstab
+(add # on the swap entry)
+
+
+Initialize a Cluster Control Plane on the Master Node
+# pull container images for kube on the master using the cri-docker
+sudo kubeadm config images pull --cri-socket /run/cri-dockerd.sock
+
+# Initialize the control plane with your indicated pod network CIDR address
+sudo kubeadm init \
+ --pod-network-cidr=172.31.8.252/20 \
+ --cri-socket /run/cri-dockerd.sock
+
+# Setup kubectl content
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# Install calico network for pod network communication
+curl https://projectcalico.docs.tigera.io/manifests/calico.yaml -O
+
+# Modify the calico network for the CIDR address
+sudo nano calico.yaml
+
+kubectl apply -f calico.yaml
+
+# Verify
+kubectl get nodes
+kubectl get all
+kubectl get pods -A
+
+
+
+
+=====================
+Join Command
+
+kubeadm join 192.168.0.40:6443 --token r5a1a1.6wakhjdv28d12c2b \
+	--discovery-token-ca-cert-hash sha256:28256de0584a503e34c96ff654da5fd5e2c050dedb3975b460d40b4c239f52ca 
+======================
+
+kubeadm join 192.168.0.46:6443 --token m3q8dj.e4ygv5eplcpashu7 \
+	--discovery-token-ca-cert-hash sha256:29cb8d408880ce3f3a333911024ed025fb97f4ec30d9e34ef9aab2b43dfb4c0b
+
+
+
+sudo kubeadm init  --pod-network-cidr=192.168.0.46/24 --cri-socket=/var/run/containerd/containerd.sock
+
+kubeadm join 172.31.8.252:6443 --token 1h2ocx.lwy4zhbejrg9g767 \
+	--discovery-token-ca-cert-hash sha256:e3336f992af0a88a1cbb371c149207c700eb075c691693cc2f999b45f933342c --cri-socket=unix:///var/run/cri-dockerd.sock
+
+
+
+
+  kubeadm init --pod-network-cidr=172.31.0.0/16 --apiserver-advertise-address=172.31.5.229 --node-name "kubemaster" --v=9
+
+  kubeadm join 172.31.5.229:6443 --token 2gpasb.m05rszxu4sh4qnyv \
+	--discovery-token-ca-cert-hash sha256:ad52b5b33c3b91d1e9d9cbf7903f04300f183aa743d3c7b1f2050fbd588e6f54
+
+
+  kubeadm join 172.31.15.175:6443 --token jyj753.9cta3n5wtjxpkgho \
+	--discovery-token-ca-cert-hash sha256:cd4a53dbb519afac60b35a548dd2619858fc2eb2f60cc01b112ffc3facb188ef 

@@ -1,0 +1,82 @@
+***** S3 Encryption
+- Server side encryption
+server side encryption with Amazon S3 managed keys (SSE-s3)
+Server side encryptuon with KMS key stored in AWS KMS
+Server side encruptuon with customer provided keys
+
+- Client side encryption - Amazon s3client-side encryption
+ 
+Encryption in transit
+- we can force it using bucket policy
+
+DSSE-KMS is double encryption based on KMS
+
+
+***** S3 Default encryption
+- SSE s3 encryption is automatically applied to new objects stored in s3 bucker
+- Optionally, you can "force encryption" using a bucket policy and refuse any API call to PUT an S3 object without encryption headers (SSE-KMS or SSE-C)
+Note: Bucket policies are evaluated before "Default Encryption"
+
+
+**** CORS
+- Cross origin resource sharing
+- Origin = Scheme (protocol) + host (domain) + port
+- Web browser based mechanism to allow requests to other origins while visiting the main origin
+- The requests won't be fulfilled unless the other origin allows for the requests, using CORS headers
+
+
+***** Amazon S3 - MFA delete
+- when permanently delete
+- when suspend versioning on bucket
+
+
+**** S3 access logs
+log access to s3 bucket
+
+
+***** Pre-signed URLs
+Generate pre-signed URLs using the s3 console, aws cli or SDK
+URL expiration from 1 min to 720 mins (12 hours)
+Users given a pre-signed URL inherit the permissions of the user that gnenrated the URL for GET/PUT
+
+
+***** Glacier Vault lock and s3 object lock
+- Adopt a WORM (write once read many) model
+- Create a vault lock policy
+- lock the policy for future eduts (can no longer be changed or deleted)
+- Helpful for compliance and data retention
+
+S3 object lock (versioning must be enabled)
+- Adopt a WORM (Write once read many) model
+- Block an object version deletion for a specified amount of time
+- Retention mode - Compliance:
+Object versions cant be overwritten or deleted by any user, including the root user
+objects retention modes can't be changed, and retention periods cant be shortened
+- Retention mode - Governance:
+Most Users can't overwrite or delete an object version or alter its lock settings
+some users have special permissions to change the retention or delete the object
+- Retention period: protect the object for a fixed period, it can be extended
+- Legalhold:
+protect the object indefinitely, independent from retention period
+can be freely placed and removed using the s3:PutObjectLegalHold IAM permission
+
+
+***** S3 access points
+
+Access point policy
+
+S3 - access points - VPC Origin
+- We can define the access point to be accessible only from within the VPC
+- You must create a VPC endpoint to access the Access point (gateway or interface endpoint)
+- The VPC endpoint policy must allow access to the target bucket and access point
+
+
+***** S3 Object Lambda
+- Use AWS Lambda functions to change the object before it is retrieved by the caller application
+- Only one S3 bucket is needed, on top of which we crearte S3 access point and S3 object Lambda access points
+Use cases:
+Redacting personally identifyable  information for analytincs or non-production environments
+Converting across data formats such as converting xml to JSON
+Resizing and watermarking images on the fly using caller-specific details, such as the user who requested the object
+
+

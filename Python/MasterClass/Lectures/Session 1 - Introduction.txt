@@ -1,0 +1,121 @@
+***** The four types of computer program
+- Program categories
+      - Interactive
+           CLI
+           Desktop graphical interface
+           Web interface programs
+      - Non-Interactive programs
+
+
+***** Print, variables, functions, list
+
+
+***** Print, strings
+
+***** Using user inputs
+print("Enter a todo:")
+user_text = input()
+print(user_text)
+
+or we can use as below
+user_text = input("Enter a todo:")
+print(user_text)
+
+
+prompt = "Enter a todo:"
+text = input(prompt)
+print(text)
+
+input function is designed to print out its arguement in the command line. also able to get inputs
+
+Functions can return the value
+
+
+***** Storing user inputs #lists
+Multiple input functions
+
+user_prompt = "Enter a todo:"
+todo1 = input(user_prompt)
+todo2 = input(user_prompt)
+todo3 = input(user_prompt)
+
+todos = [todo1, todo2, todo3]
+print(todos)
+
+print(type(user_prompt))
+
+- from the above code last line is used to display the type of value used in variable user_prompt.
+
+type -> fucntion is desined to output the type of arguement
+
+
+***** Code experiment
+(a) removing a " from the code
+error:
+-------------
+/Users/karthik/Documents/studies/Karthik-studydocuments/Python/MasterClass/Codes/venv/bin/python /Users/karthik/Documents/studies/Karthik-studydocuments/Python/MasterClass/Codes/venv/Session 1/multiple_inputs.py 
+  File "/Users/karthik/Documents/studies/Karthik-studydocuments/Python/MasterClass/Codes/venv/Session 1/multiple_inputs.py", line 1
+    user_prompt = "Enter a todo:
+                                ^
+SyntaxError: EOL while scanning string literal
+
+Process finished with exit code 1
+---------------
+
+(b) Single quotes works exactly like double quotes. But, if you have a word which has single quotes like don't, then
+we need to use double quotes
+
+(c) removing paranthesis like below
+user_prompt = 'Enter a todo:'
+todo1 = input(user_prompt
+todo2 = input(user_prompt)
+todo3 = input(user_prompt)
+
+todos = [todo1, todo2, todo3]
+print(todos)
+
+print(type(user_prompt))
+error:
+----------------------------
+/Users/karthik/Documents/studies/Karthik-studydocuments/Python/MasterClass/Codes/venv/bin/python /Users/karthik/Documents/studies/Karthik-studydocuments/Python/MasterClass/Codes/venv/Session 1/multiple_inputs.py 
+  File "/Users/karthik/Documents/studies/Karthik-studydocuments/Python/MasterClass/Codes/venv/Session 1/multiple_inputs.py", line 3
+    todo2 = input(user_prompt)
+    ^
+SyntaxError: invalid syntax
+
+Process finished with exit code 1
+----------------------------
+
+(d) removing spaces between assignment parameters
+result: white spaces does not matter (but it is recommended to have white spaces)
+
+(e) running declaration in same line
+likebelow:
+user_prompt = 'Enter a todo:'todo1 = input(user_prompt)
+todo2 = input(user_prompt)
+todo3 = input(user_prompt)
+
+todos = [todo1, todo2, todo3]
+print(todos)
+
+print(type(user_prompt))
+
+error
+-------------------------
+/Users/karthik/Documents/studies/Karthik-studydocuments/Python/MasterClass/Codes/venv/bin/python /Users/karthik/Documents/studies/Karthik-studydocuments/Python/MasterClass/Codes/venv/Session 1/multiple_inputs.py 
+  File "/Users/karthik/Documents/studies/Karthik-studydocuments/Python/MasterClass/Codes/venv/Session 1/multiple_inputs.py", line 1
+    user_prompt = 'Enter a todo:'todo1 = input(user_prompt)
+                                 ^
+SyntaxError: invalid syntax
+
+Process finished with exit code 1
+-------------------------
+
+The declaration should be in new line
+
+
+****** Bonus Example:
+To count the length of character - use the 'len' function
+
+
+***** Python console

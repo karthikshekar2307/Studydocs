@@ -1,0 +1,24 @@
+***** Todo list view and program exit
+- Is only available from python version 3.10 and above.
+
+
+***** Improving the program out for for-loops
+
+
+***** Code Experiment
+- How to fix if user enters random string (if case does not match)
+show something to user if case is not matching
+
+add below:
+------
+case _:
+   print("Hey you entered unknown command: ")
+
+Or operator  - | 
+
+how to make item words to use uppercase letters
+
+item = item.title()
+
+
+***** Bonus example

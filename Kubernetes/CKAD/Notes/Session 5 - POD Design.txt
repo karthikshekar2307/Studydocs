@@ -1,0 +1,160 @@
+***** Labels, selectors and annotations
+- to group things together
+- used in queries (filtering)
+- labels are key/value pairs
+
+# kubectl get pods --selector app=App1
+
+Annotations - used to record other details
+
+***** Rolling updates and Rollbacks
+- rollout deploys new revision
+- helps rollback to previous version
+
+# kubectl rollout status deployments/myapp-deployment
+
+# kubectl rollout history deployments/myapp-deployment
+
+- Deployment strategies
+(a) Recreate - destroy running instance and recreate new instance 
+(b) rolling update (default)
+
+How to update deployments
+# kubectl apply -f
+
+# kubectl set image
+
+In rolling update strategy, deployment creates a new replicaset under the hood
+and then takes down one pod at a time while it brings new one
+# kubectl get replicasets
+
+If something is not correct with curent deployment
+- do undo
+# kubectl rollout undo deployment/myapp-deployment
+
+# kubectl get deployments
+# kubectl set image deployment/myapp-deployment nginx=nginx:1.9.1
+# kubectl rollout status deployment/myapp-deployment
+# kubectl rollout history deployment/myapp-Deployment
+# kubectl rollout undo deployment/myapp-deployment
+
+***** Updating a deployment
+You can check the status of each revision individually by using the – -revision flag:
+$ kubectl rollout history deployment nginx --revision=1
+
+You would have noticed that the “change-cause” field is empty in the rollout history output. We can use the – -record flag to save the command used to create/update a deployment against the revision number.
+$ kubectl set image deployment nginx nginx=nginx:1.17 --record
+
+Lets now rollback to the previous revision:
+$ kubectl rollout history deployment nginx
+$ kubectl rollout history deployment nginx --revision=3
+
+
+****** Blue/Green Deployments
+- where we have new version along old version
+old is blue new is green
+Once all tests to new is passed, we pass all to new (green)
+
+how to achieve this
+- first to route traffic to blue, the label on deployment and service is same
+- to route it to new, change the labels on deployment nd service
+
+
+***** Canary deployment/updates
+deploy a new version and route small percent of traffic to new version
+after test, update all other pods to new version
+
+1. Route traffic to both version : use a secondary common label to both versions
+2. Route a small percentage of traffic to version 2 : Reduce number of pods in canary deployments
+
+With Istio we have options to choose the percentage of traffic between deployments
+
+
+***** Jobs
+Types of workloads
+- web
+- application
+- database
+- batch processing
+- analytics
+- reporting
+
+# docker run ubuntu expr 3 + 2
+
+----
+apiVersion: v1
+kind: Pod
+metadata:
+  name:
+spec:
+  containers:
+  - name:
+    image:
+    command: ['expr', '3', '+', '2']
+  restartPolicy: Always
+
+set of jobs is created to make  for completion
+
+job-definition.yaml
+----
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: math-add-job
+spec:
+   completions: 3
+   template:
+     spec:
+        containers:
+          - name: math-add
+            image: ubuntu
+            command: ['expr', '3', '+', '2']
+        restartPolicy: Never
+
+# kubectl create -f job-definition.yaml
+# kubectl get jobs
+
+# kubectl logs math-add-job-sdfds
+
+# kubectl delete job math-add-job
+
+- Parallelism
+----
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: math-add-job
+spec:
+   completions: 3
+   parallelism: 3
+   template:
+     spec:
+        containers:
+          - name: math-add
+            image: ubuntu
+            command: ['expr', '3', '+', '2']
+        restartPolicy: Never
+
+
+***** Cron Jobs
+job that can be scheduled
+cron-definition.yaml
+----
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: reporting-cron-job
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      completions: 3
+      parallelism: 3
+      template:
+        spec:
+          containers:
+             - name: reporting-tool
+               image: reporting-tool
+          restartPolicy: Never
+
+

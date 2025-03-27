@@ -1,0 +1,47 @@
+***** Getting user input repeatedly - #while-loop
+
+while should hold a true value
+True - boolean
+
+If we have a false, nothing will happen.
+
+
+***** Storing user values
+
+example:
+--------
+user_prompt = "Enter a todo:"
+
+todos = []
+
+while True:
+    todo = input(user_prompt)
+    todos.append(todo)
+    print(todos)
+----------
+
+the one that comes after the dot are methods (attributes), methods are attached to datatypes, it is attached to object of a variable
+
+
+user_prompt = "Enter a todo:"
+
+todos []
+
+while True:
+    todo = input(user_prompt)
+    print(todo.capitalize())
+    todos.append(todo)
+
+***** Coding experiment
+
+- No need to make variable declaration inside while loop, it will only make program heavier
+
+user_prompt = "Enter a todo:"
+
+todos []
+
+while True:
+    todo = input(user_prompt)
+    print(todo.title())
+    todos.append(todo)
+

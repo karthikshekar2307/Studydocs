@@ -1,0 +1,39 @@
+***** Playbooks
+- Is a text document that consists of all the configurations required to be performed in nodes.
+- We write ansible playbooks in yaml.
+
+------
+Example
+
+---
+- hosts: group1 (which machines tasks will be performed)
+  user: ansible (which user woul dbe performing tasks)
+  become: yes   (Ansible user will perform activites as a root user)
+  tasks:
+     - name: install apache in nodes
+       action: apt name=apache2 state=present
+
+
+-name: name of the tasks
+action: what need to be done
+state=present: we want to install the package
+
+
+# ansible-playbook firstplay.yaml  - to execute the playbook
+
+Ansible follow idempotency: If a file or package is already install, it will not recreate the file
+
+Adding another action
+
+---
+- hosts: group1 (which machines tasks will be performed)
+  user: ansible (which user woul dbe performing tasks)
+  become: yes   (Ansible user will perform activites as a root user)
+  tasks:
+     - name: install apache in nodes
+       action: apt name=apache2 state=present
+      - name: copy a file
+        action: copy src=/home/ansible/file dest=/home/ansible/myfile
+
+src - source of ansible server
+

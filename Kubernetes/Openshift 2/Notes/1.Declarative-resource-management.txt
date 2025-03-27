@@ -1,0 +1,74 @@
+***** Obtaining details of kubernetes objects configuration
+
+The kubectl explain command provides the details for any field in the manifest. 
+For example, use the 
+
+# kubectl explain deployment.spec.template.spec
+
+===============================
+
+To create a starter deployment manifest, use the kubectl create deployment command to
+generate a manifest by using the --dry-run=client option:
+
+# kubectl create deployment hello-openshift -o yaml --image registry.ocp4.example.com:8443/redhattraining/hello-world-nginx:v1.0 --save-config --dry-run=client > ~/my-app/example-deployment.yaml
+
+The --save-config option adds configuration attributes that declarative commands
+use. For deployments resources, this option saves the resource configuration in an
+kubectl.kubernetes.io/last-applied-configuration annotation.
+
+The --dry-run=client option prevents the command from creating resources in the
+cluster.
+
+===============================
+
+Add the --recursive=true or -R option to recursively process resource files that are provided in multiple subdirectories
+
+# tree my-app
+my-app
+├── example_deployment.yaml
+└── service
+└── example_service.yaml
+[user@host ~]$ kubectl create -R -f ~/my-app
+deployment.apps/hello-openshift created
+
+
+===============================
+The kubectl apply command can also create resources with the same -f option that is
+illustrated with the kubectl create command. However, the kubectl apply command can
+also update a resource.
+
+Updating resources is more complex than creating resources. The kubectl apply command
+implements several techniques to apply the updates without causing issues.
+The kubectl apply command writes the contents of the configuration file to the
+kubectl.kubernetes.io/last-applied-configuration annotation. The kubectl
+create command can also generate this annotation by using the --save-config option.
+The kubectl apply command uses the last-applied-configuration annotation to
+identify fields that are removed from the configuration file and that must be cleared from the live
+configuration.
+
+Although the kubectl create -f command can create resources from a manifest, the
+command is imperative and thus does not account for the current state of a live resource.
+Executing kubectl create -f against a manifest for a live resource gives an error. In contrast,
+the kubectl apply -f command is declarative, and considers the difference between the
+current resource state in the cluster and the intended resource state that is expressed in the
+manifest.
+
+================================
+
+Before applying the changes to the resource, use the --dry-run=server and the --validate=true flags to inspect the file for errors.
+• The --dry-run=server option submits a server-side request without persisting the resource.
+• The --validate=true option uses a schema to validate the input and fails the request if it is
+invalid.
+
+# kubectl apply -f ~/my-app/example-deployment.yaml --dry-run=server --validate=true
+
+================================
+Use the kubectl diff command to review differences between live objects and manifests
+
+kubectl diff -f example-deployment.yaml
+
+================================
+
+
+
+****** Kustomize Overlays

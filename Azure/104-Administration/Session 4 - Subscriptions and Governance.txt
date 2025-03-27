@@ -1,0 +1,102 @@
+***** subscription
+Any service we create first we need to choose subscription
+
+Subscription - attached to your account, can be many
+
+- Using Azure required Azure subscription
+
+- An azure subscriptiion is a logical unit of services that links to an Azure account. It also allows you to provision
+resources
+
+- A subscriptopn provides you with authenticated and authorized access to Azure products and services
+
+- Azure generates seperate billing reports and invoices for each subscriptions
+
+- Two types of subscription boundaries
+Billing boundary
+Access control boundary
+
+- You can create seperate subscription based on
+envieonment
+organization structures
+billing
+
+- Diffferent types of subscriptions
+free
+Pay per use
+Enterprise
+Student
+
+
+***** Creating new subscriptions
+
+
+***** Trust relation between AzureAD/Tenant and subscription
+- An Azure subscription has a trust relationship with Azure Active directory
+- A subscription trusts Azure AD to authenticate users, services and devices
+- Multiple subscriptions can trust the same Azure AD directory, each subscription can only trust a single directory
+
+
+***** Azure Tags
+
+
+***** Azure resource locks
+- Avoid accidental deletion of resources
+
+
+***** Moving resources
+- Moving resources between resource groups and subscriptions
+
+Resource group contains the metadata of resources, where as the resources itself can be in different location.
+
+- We can move resources to 
+another resource group
+another subscriptions
+another region
+
+If the resource group has read lock, we cannot move resources
+
+
+***** Azure policy
+enforce restrictions
+enforcement of rules
+
+we can assign policies at subscriptions and resource group policies.
+
+- Azure policy can help you control or restrict or Audit resources
+- Enforce rules on azure resources configurations to make sure they remain compliant with corporate standards
+- You can apply individual policy or group of policy (initiatives)
+- Two imp tasks
+prevent noncompliant resources from being created
+highlights existing resources that aren't compliant with the policies
+
+Examples:
+Allows only a certain SKU size for the virtual machines (VMs) to be provisioned
+Mandatory tags to be created while provisioning resources
+MFA should be enabled on accounts with write permissions on your subscription
+Assign policy within a specific scope(management group, a single subscription or a resource group)
+Policy assignments are inherited by all child resources within that scope
+ You can exclude specific child resources you need to be exempt from the policy assignments
+
+
+****** Management groups
+- Management groups let you organize mutiple subscriptions as a single managment entity to facilitate easier management
+- You can create management groups in a hierarchial structure with the top level of the hieratchy at the tenant level and containing all subscriptions in that tenant
+- Any conditions applied to a management group apply to all subscriptions contained in that management group object
+- Each management group and subscriptopns can support only one parent
+- Each management group can have many children
+- The root management group can't be moved or deleted unlike other management groups.
+
+
+***** Azure cost management and Billing
+This is a built-in service that gives you a breakdown of the usage and cost of your azure resources
+This allows you to see what is costing you money and how it compares against your budget
+You use cost management + billing features to:
+- Conduct billing administrative tasks such as paying your bull
+- Manage billing access to costs
+- Download cost and usage data that was used to generate your monthly invoices
+- Proactively apply data analysis to your costs
+- Set spending thresholds
+- Identify opportunities for workload changes that can optimize your spending.
+
+

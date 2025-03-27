@@ -1,0 +1,53 @@
+***** Configuring Storage account
+
+***** Azure storage explorer.
+
+
+***** Azure storage authorization options
+
+- Anonymous
+Public access, no authorization is required
+use case: website, online documentation
+only for blob
+
+- Shared key authorization
+data can be accessed using access keys
+
+- Shared access signatures
+provide limited delegated access
+constraints: time interval, permissions
+
+- Azure active directory
+Role-based access control - Fine grained access can be provided to users, groups or applications.
+
+
+***** Azure storage shared access key authorization
+- Two default access keys are generated with every storage accoung
+- Whoever has these keys can access entire storage account
+- Make sure they're safe by not storing or hard coding them in your application code
+store these on key vault
+- If keys compromised, you can regenerate keys
+- Recommendation: periodically rotate the keys
+- Consider Azure AD instead
+
+
+***** Azure Storage shared access signature (SAS keys)
+
+
+***** Azure storage access policy
+Storage access policies can be applied for SAS keys
+- Will be created on container level
+
+
+***** Azure AD authorization
+- Azure storage can use Azure AD to authorizr requests
+- Storage account level or service level (currently Blob and Queue only)
+- Use role-based access control (RBAC)
+user, group or service principle
+- Microsoft recommended approach
+benefit: no longer need to store credentials within application config files
+more secure, easy to implement and manage
+- Similar to IIS application pool identity approach
+
+
+***** Network access control

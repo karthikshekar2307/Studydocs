@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  namespace: dev
+  labels:
+    app: myapp
+    costcenter: amer
+spec:
+  containers:
+    - name: nginx-container
+    - name: nginx-container
+      image: nginx
+    - name: backend-container
+      image: redis

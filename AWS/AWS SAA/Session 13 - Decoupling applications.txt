@@ -1,0 +1,94 @@
+***** Introduction to messaging
+- when we start deploying multiple applications, they will inveitably need to communicate with one another
+- There are two patterns of application communication
+Synchronous communication
+Asynchronous communucation
+
+
+**** SQS - Standard queue overview
+Producers ----> SQS queue -----> Consumer
+- Oldest offering
+- used to decouple applications
+- Attributes
+Unlimited throughput, unlimited number of messages in queue
+Default retention of messages:  4 days, maximum od 14 days
+low latency
+limitations od 256KBper message sent
+- can have duplicated messages (at least once delivery, occasionally)
+- can have out of order messages (best effort ordering)
+
+Messages up to 256Kb using SDK
+messgage retention : default 4 days up to 14 days
+
+SQS - Consuming messages
+- Consumers (running on EC2 instances, servers, or AWS Lambda)
+- Poll SQS for messages (receive up to 10 messages at a time)
+- Process the messages (Example: insert the message into RDS database)
+- Delete the message using DeleteMessage API
+
+Cloudwatch metric - Queuelength - alarm - more consumers in ASG
+
+Amazon SQS - Security
+
+- Encryption:
+In-flight encryption using HTTPS API
+A-rest encryption using KMS keys
+Client-side encryption if the client wants to perform encryption/decryption itself
+
+- Access control: IAM policies to regulate access to the SQS API
+
+- SQS access policies (Similar to S3 bucket policies)
+
+
+***** SQS message visibility timeout
+- After a message is polled by a consumer, it becomes invisible to other consumers
+- By default, the "message visisbilityt timeout is 30 seconds
+- If a message is not processed within the visibility timeout, it will be processed twice
+- A consumer could call the ChangeMessageVisibiltu API to get more time
+- If visibility timeout is high(hours), and consimer crashes, re-processing will take time
+- If visibility timeout is too low (seconds), we may get duplicates
+
+
+***** SQS Long polling
+- When a consumer requests messages from the queue, it can optionally "wait" for messages to arrive if there are none in queue
+- LongPolling decreases the number of API calls made to SQS while increasing the efficiency and latency of your application
+- The wait time can be between 1 sec to 20 sec (20 sec preferable)
+- Long polling is preferable to short polling
+- configure at queue level or choose to long polling
+
+
+***** SQS and SQS - Fanout patterns
+- Push once in SNS, receive in all SQS queues that are subscribers
+- Fully decoupled, no data loss
+- SQS allows for: data persistence, delayed processing and retries of ValidatingWebhookConfiguration
+- Ability to add more SQS subscribers over time
+- Make sure your SQS queue access policy allows for SNS to write
+- Cross-region delivery: works with SQS queues in other regions
+
+
+**** Amazon Kenesis
+- Makes it easy to collect, process and abalysw streaing data in real time
+- Ingest real-time data such as: Appliction logs, Metrics, website clickstreams, IoT telemetry data
+Kinesis data streams
+data firehose
+data analytics
+video streams
+
+Producers -----> Record (partition key) ---> Kinesis (shards)  ---> Record ---> consumers
+- retention between 1 day to 365 days
+
+Kinesis data streams security
+- Control access/authorization using IAM policies
+- Encryption in flight using HTTPS endpoints
+- Encryption at rest using KMS
+- You can implement encryption/decryption of data on client side (harder)
+- VPC endpoints available for kinesis to access within VPC
+- Monitor API calls using CloudTrial
+
+
+***** Kinesis data firehose
+Producers---> firehose ---> data transformation (lanbda function) ----> batch writes ----> S3, Redshigt --> opensearch ----> 3rd party destimnations(splunk, newrelic or custom destimnation
+
+
+***** Amazon MQ
+Manaaged message broker service for RabbitMQ and Active MQ

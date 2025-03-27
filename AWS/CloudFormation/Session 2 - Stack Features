@@ -1,0 +1,85 @@
+Session 2 - Stack Features
+---------------------------
+
+***** Pre-requisites
+- Create default VPC 
+- Create Key pair
+cfn-key-1
+cfn-key-2
+- Gather AMI ID
+
+***** Create stack
+- Stack features
+Create stack
+Update stack
+Create change sets
+Rollback
+
+1. Instance-create.yaml
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  DevEC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageID: ami-01234564223w1234s
+      InstanceTpe: t2.micro
+
+
+***** Update stack
+2. instance-update.yaml
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  DevEC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageID: ami-01234564223w1234s
+      InstanceTpe: t2.micro
+      KeyName: cfn-key-1
+
+
+***** Create Change Set - KeyName
+3. createchangeset-update.yaml
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  DevEC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageID: ami-01234564223w1234s
+      InstanceTpe: t2.micro
+      KeyName: cfn-key-2
+
+
+***** Create change set - InstanceType
+4. instance-changeset-instancetype.yaml
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  DevEC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageID: ami-01234564223w1234s
+      InstanceTpe: t2.small
+      KeyName: cfn-key-2
+
+
+***** Update rollback
+5. update-rollback.yaml
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  DevEC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageID: ami-01234564223w1234s
+      InstanceTpe: t2.small
+      KeyName: cfn-key-3
+
+
+***** Create stack Invalid template
+6. Invalid template
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  DevEC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageID: ami-01234564223w1234s
+      InstanceTpe: t2.small
+      KeyName: cfn-key-3

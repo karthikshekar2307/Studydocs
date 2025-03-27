@@ -1,0 +1,800 @@
+Session 8 - Networking
+-----------------------
+
+***** Prerequisite Switching Routing
+For IP forwarding
+- cat /proc/sys/net/ipv4/ip_forward
+
+To make it persistent
+/etc/sysconfig
+
+Show interfaces
+# ip link
+
+Show IP
+# ip addr
+
+Add IP to interface
+# ip addr add 192.168.1.10/24 dev eth0
+
+Show route
+# ip route
+
+Add route
+# ip route add 192.168.1.0/24 via 192.168.2.1
+
+
+***** Prerequisite DNS
+
+***** Prerequisite CoreDNS
+In the previous lecture we saw why you need a DNS server and how it can help manage name resolution in large environments with many hostnames and Ips and how you can configure your hosts to point to a DNS server. In this article we will see how to configure a host as a DNS server.
+
+We are given a server dedicated as the DNS server, and a set of Ips to configure as entries in the server. There are many DNS server solutions out there, in this lecture we will focus on a particular one – CoreDNS.
+
+So how do you get core dns? CoreDNS binaries can be downloaded from their Github releases page or as a docker image. Let’s go the traditional route. Download the binary using curl or wget. And extract it. You get the coredns executable.
+
+Run the executable to start a DNS server. It by default listens on port 53, which is the default port for a DNS server.
+
+Now we haven’t specified the IP to hostname mappings. For that you need to provide some configurations. There are multiple ways to do that. We will look at one. First we put all of the entries into the DNS servers /etc/hosts file.
+
+And then we configure CoreDNS to use that file. CoreDNS loads it’s configuration from a file named Corefile. Here is a simple configuration that instructs CoreDNS to fetch the IP to hostname mappings from the file /etc/hosts. When the DNS server is run, it now picks the Ips and names from the /etc/hosts file on the server.
+
+CoreDNS also supports other ways of configuring DNS entries through plugins. We will look at the plugin that it uses for Kubernetes in a later section.
+
+Read more about CoreDNS here:
+
+https://github.com/kubernetes/dns/blob/master/docs/specification.md
+
+https://coredns.io/plugins/kubernetes/
+
+
+***** Prerequisite - Network Namespaces
+Network namespaces in linux are usually used by container runtime like docker to create network isolation.
+Containers are seperated from underlying host via namespaces.
+
+Within a namespace the container has its own virtual interface, route table and ARP tables.
+
+Create Network namespaces
+# ip netns add red
+# ip netns add blue
+
+List namespaces
+# ip netns
+
+List interfaces
+# ip link
+
+To view the interfaces in a network namespace
+# ip netns exec red ip link
+or
+# ip -n red link
+
+To see arp table
+# arp
+
+To create network connection between two namespaces
+1. Create a network link
+# ip link add veth-red type veth peer name veth-blue
+2. Attach virtual interfaces to namespaces
+# ip link set veth-red netns red
+# ip link set veth-blue netns blur
+3. Assign IP
+# ip -n red addr add 192.168.15.1 dev veth-red
+# ip -n blue addr add 192.168.15.2 dev. veth-blue
+4. Bring up the interfaces
+# ip -n red link set veth-red up
+# ip -n blue link set veth-blue up
+5. Now try listing arp
+# ip netns exec red arp
+# ip netns exec blue arp
+
+If there are multiple namespaces and if you wish to establish connections with all namespaces, you need to configure virtual switch
+There are multiple solutions available
+- Linux Bridge
+- Open vSwitch
+
+Add new interface (linux bridge)
+# ip link add v-net-0 type bridge
+# ip link set dev v-net-0 up
+
+To link bridge
+# ip link add veth-red type veth peer name veth-red-br
+# ip link add veth-blue type veth peer name veth-blue-br
+
+To attach the veth
+# ip link set veth-red netns red
+# ip link set veth-red-br master v-net-0
+
+# ip link set veth-blue netns blue
+# ip link set veth-blue-br master v-net-0
+
+Set IP and up the link
+# ip -n red addr add 192.168.15.1 dev veth-red
+# ip -n blue addr add 192.168.15.2 dev. veth-blue
+# ip -n red link  set veth-red up
+# ip -n blue link set veth-blue up
+
+Assign an IP to virutal bridge to enable connections from host
+# ip addr add 192.168.15.5/24 dev v-net-0
+
+To add route to enable namespaces to connect to external ips.
+# ip netns exec blue ip route add 192.168.1.0/24 via 192.168.15.5
+
+Add NAT functionality to host
+# iptables -t nat -A POSTROUTING -s 192.168.15.0/24 -j MASQUERADE
+
+Add default gateway
+# ip netns exec blue ip route add default via 192.168.15.5
+
+To allow connections from external IPs
+# iptables -t nat -A PREROUTING --dport 80 --to-destination 192.168.15.2:80 -j DNAT
+
+
+***** FAQ
+
+While testing the Network Namespaces, if you come across issues where you can't ping one namespace from the other, make sure you set the NETMASK while setting IP Address. ie: 192.168.1.10/24
+
+# ip -n red addr add 192.168.1.10/24 dev veth-red
+
+Another thing to check is FirewallD/IP Table rules. Either add rules to IP Tables to allow traffic from one namespace to another. Or disable IP Tables all together (Only in a learning environment).
+
+
+***** Docker networking
+
+Different network options
+None: With none network docker is not attached to any network.
+Host : container is attached to host network and there is no network isolation
+Bridge : In this case, internal private network is created where a docker host and containers attach to. The network has address 172.17.0.0 by default. Every device connecting to this network will have their own internal private address.
+
+How docker creates and manages Bridge network
+- When docker is installed, docker creates an internal private network called bridge by default
+# docker network ls
+docker calls the network by name bridge. But host recognizes the network as docker0
+# ip link
+
+Whenever a container is created, a namespace is created. To view namespace
+# ip netns
+
+You can verify the namespace used by container using below command
+# docker inspect <container_id>
+
+How does docker attach container or network namespace to bridge network?
+# ip link
+
+# ip -n <namespace> link
+
+# ip netns
+
+# ip -n <containerID> addr
+
+When a new container is created, a network namespace is created and docker creates an interface on namespace side and bridge network interface side.
+
+To allow connections from external network to docker, the docker has a concept called port-mapping.
+# docker run -p 8080:80 nginx
+
+Docker routes the traffic internally via Iptable chain
+# iptables -t nat -A PREROUTING -j DNAT --dport 8080 --to-destination 172.17.0.3:80
+
+
+***** Prerequisite CNI (Container networking interface)
+Network Namespaces
+- Create Network Namespace
+- Create Bridge network/interface
+- create VETH Pairs (pipe, virtual cable)
+- Attach vEth to namespace
+- Attach other vEth to bridge
+- Assign IP addres
+- Bring the interfaces up
+- Enable NAT - IP Masquerade
+
+Docker
+- Create Network Namespace
+- Create Bridge Network/Interface
+- Create VETH Pairs (Pipe, virtual cable)
+- Attach vETH to namespace
+- Attach other vEth to bridge
+- Assign IP addresses
+- Bring the interfaces up
+- Enable NAT - IP Masqueade
+
+CNI - Is a set of standards that define how programs should be developed to solve networking challenges in a container runtime environment. The programs are referred to as plugins (bridge).
+CNI defines set of responsibilites for container runtimes and plugins.
+
+- For container run times, CNI is responsible for creating network namespace
+- Identify network the container must attach to
+- Container runtime to invoke network plugin (bridge) when container is Added
+- Container rntime to invoke network plugin (bridge) when container is DEleted
+- JSON format of the network configuration
+
+On plugin side:
+- It must support command line arguement ADD/DEL/CHECK
+- Must support parameters container id, network ns etc.
+- Must manage IP address assignment to PODs
+- Must return results in a specific format
+
+CNI Supported plugins
+- Bridge
+- VLAN
+- IPVLAN
+- MACVLAN
+- WINDOWS
+
+
+DHCP 
+host-local
+
+Docker does not support CNI, it supports Container Network Model (CNM)
+
+Work around to enable docker to use CNI
+# docker run --network=none nginx
+# bridge add <container-ID> /var/run/netns/<namespace>
+
+
+***** Cluster Networking
+Networking configuration required on master and worker nodes.
+
+Kubernetes consists of master and worker.
+
+Master should accept connections on Port 6443 for api server.
+Port list
+(a) Kube-api : 6443
+(b) Kubelet : 10250
+(c) kube-scheduler: 10251
+(d) kube-controller-manager: 10252
+(e) etcd : 2379 / etcd client : 2380
+
+***** Important Note about CNI and CKA Exam
+An important tip about deploying Network Addons in a Kubernetes cluster.
+
+In the upcoming labs, we will work with Network Addons. This includes installing a network plugin in the cluster. While we have used weave-net as an example, please bear in mind that you can use any of the plugins which are described here:
+
+https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+https://kubernetes.io/docs/concepts/cluster-administration/networking/#how-to-implement-the-kubernetes-networking-model
+
+In the CKA exam, for a question that requires you to deploy a network addon, unless specifically directed, you may use any of the solutions described in the link above.
+
+However, the documentation currently does not contain a direct reference to the exact command to be used to deploy a third party network addon.
+
+The links above redirect to third party/ vendor sites or GitHub repositories which cannot be used in the exam. This has been intentionally done to keep the content in the Kubernetes documentation vendor-neutral.
+
+At this moment in time, there is still one place within the documentation where you can find the exact command to deploy weave network addon:
+
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/high-availability/#steps-for-the-first-control-plane-node (step 2)
+
+***** Practise test
+To show all physical link
+# ip link
+
+
+***** POD Networking
+How Pods communicate or how do they communicate?
+By default kubernetes does not come with a solution, it expects us to solve the issue.
+
+Requirements for POD networking
+- Every POD should have an IP address
+- Every POD shouuld be able to communicate with every other POD in same node.
+- Every POD should be able to communicate with every other POD on other nodes without NAT.
+
+Proceedure :
+1. When we provision a POD, the POD will be assigned to a network namespace and node creates a bridge adapter on each node
+2. each adapter gets an subnet
+3. each adapter gets IP
+4. net-script.sh
+# create veth pair
+ip link add ....
+
+# attach veth pair
+ip link set ...
+ip link set ...
+
+# assign IP address
+ip -n <namespace> addr add ...
+ip -n <namespace> route add ...
+
+# Bring up interdace
+ip -n <namespace> link set ...
+
+Configure routes
+# ip route add 10.244.2.2 via 192.168.1.12
+
+CNI tells, this is how network needs to be setup
+
+We need to create a script that meets CNI standards
+ADD) -> sections adds networking 
+DEL) -> section deletes networking
+
+kubelet -> Is responsible for creating containers, when container is created, kubelet checks CNI configuration passed as command line arguement when it was run and identifies our script name.
+It then looks at CNI bin directory to find script and executes script with add command with name and namespace ID of the container.
+
+
+***** CNI in kubernetes
+CNI defines responsibilites of container runtime.
+- Container runtime must create network namespace
+- Identify network the container must attach to
+- Container runtime to invoke network plugin (bridge) when container is added
+- Container runtime to invoke network plugin (bridge) when container is Deleted
+- JSON format of the Network configuration
+
+CNI plugin must be invoked by component within kubernetes that is responsible for creating containers. Then that component must invoke the appropriate network plugin after container is created. 
+
+CNI plugin is configured in kubelet service on each node in the cluster.
+
+In kubelet.service file, below options can be seen
+--network-plugin=cni
+--cni-bin-dir=/opt/cni/bin
+--cni-conf-dir=/etc/cni/net.d
+
+# ps -aux |grep kubelet
+
+Plugins as Executables are located in
+- /opt/cni/bin
+
+how does kubelet knows which plugin needs to be used
+- ls /etc/cni/net.d
+
+
+***** CNI - Weave
+Weave plugin deploys agent or service on all node of the cluster. They communicate with each other with details of nodes, pods and networks.
+
+Each agent has the topology of entire setup, where they know the PODS and their IPs on the other nodes.
+
+Weave creates its own bridge on nodes and names it weave and then assigns IP address to each network. 
+
+A single pod might be attached to multiple bridge networks. Weave ensures each POD gets assigned to correct bridge.
+
+Deploy Weave on kubernetes cluster
+it can be deployed as services or daemons manually. 
+# kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+
+***** IP Address Management - Weave
+How virtual bridge on nodes are assigned IP subnet?
+- CNI Plugin Responsibilities 
+Must support arguements ADD/DEL/CHECK
+Must support parameters container id, network ns etc..
+Must manage IP address assignment to PODs
+Must return results in a specific format
+
+Ip list will be managed in each host and plugin sctipt will have responsibilities to assign/not-assign IPs.
+
+CNI configuration file will have a section called IPAM in which we specify type of plugin to be used subnets and routes to be used.
+cat /etc/cni/net.d/net-script.conf
+
+Weaveworks - By default allocates IP - 10.32.0.0/12
+
+
+***** Service Networking
+If you would like to access service running on another POD, you configure POD to access another POD using service.
+
+When a service is created it is accessible from all PODS of cluster, irrespective of what nodes PODs are on.
+
+Where a POD is hosted on node, service is hosted across cluster. It is not bound to specific node.
+
+Services are only accessible within the cluster.
+
+If a POD is hosting a service like web service, it needs to make it available via Node-Port service
+
+How service gets IP and made available
+Each kubelet watches changes via kube-api for any instructions to launch new pod
+then kubelet invokes CNI plugin to configure networking for POD
+Similarly each node runs another component known as kube-proxy.
+Kube-proxy watches changes in the cluster to kube-api server.
+Everytime a new service is to be created, kube proxy gets into action.
+Services are not created or assigned to any node
+services are cluster wide concept.
+They exist across all the nodes in the cluster.
+
+service is a virtual object
+
+When we create a service object in kubernetes, it is assigned an IP address from a pre-defined range. The kube-proxy component running on each node get IP and created forwarding rule
+on each node in the cluster. Saying, any traffic coming to this IP of the service should go to IP of the POD.
+
+Once that is in place, Whenever a POD tries to reach IP of that service, it is forwarded to PODs IP address, which is accessible from any node of cluster.
+
+How are the rules created?
+- kube-proxy supports different space such as 
+(a) Userspace
+(b) ipvs
+(c) Iptables
+
+proxy mode can be set using "Proxy-mode" option
+# kube-proxy --proxy-mode [userspace| iptables| ipvs ]
+
+When a service is created, the kubernetes assigns an IP to service and this is defined in "--service-cluster-ip-range" option
+# kube-api-server --service-cluster-ip-range ipNet
+
+# iptables -: -t net | grep db-service
+
+logs:
+cat /var/log/kube-proxy.log
+
+
+***** Solution - Services networking
+What is the range of IP address for PODs
+# kubectl -n kube-system get pods
+# kubectl -n kube-system logs weave-net-h
+
+What is the ip range for services
+# cat /etc/kuberntents/manifests
+vi kube-api.service
+
+What type of proxy is kubeproxy is using
+# kubectl -n kube-system logs kube-proxy-pod
+
+how dooes kybernetes clste runs as daemonset
+# kubectl -n kube-system get ds
+
+
+***** DNS in kubernetes
+Each node name has hostname and IP
+
+DNS resolution within cluster
+- Kubernetes deploys built in DNS service by default when you setup cluster.
+
+Whenever a service is created, kubernetes DNS service creates a record for the service.
+
+It maps service name to IP address. So any pod in cluster can reach the service using its service name.
+
+To reach a service in an different namespace
+# curl http://web-service.apps
+
+For each namespace, DNS service creates a subdomain with namespace name
+for example:
+web-service.apps
+
+All pods and service in a namespace are grouped together within a subdomain in the name of the namespace all services are futther group together with subdomain called svc
+web-service.apps.svc
+
+Further all pods and services are grouped togther as 
+web-service.apps.svc.cluster.local
+
+Record for POD are not enabled by default.
+
+
+***** CoreDNS in kubernetes
+
+How kubernetes implements DNS
+
+Prior to version 1.12 the DNS server implemented by kubernetes was known as "Kube-DNS"
+
+With 1.12 the recommended dns server is CoreDNS
+
+CoreDNS is deployed as a pod in kube-system namespace in kubernetes cluster. there will be 2 pods as replica set and deployment. it runs coredns executable.
+# cat /etc/coredns/corefile -> contains list of plugins.
+.:53 {
+	  errors
+	  health
+	  kuberenetes (top level domainname is set)
+}
+prometheus :9153
+proxy . /etc/resolv.conf
+cache 30
+reload
+}
+
+Corefile is passed to POD as configmap object.
+10-244-1-5     10.244.1.5
+
+/etc/resolv.conf
+nameserver <IP_of_Coredns> --> managed by coredns. and its done by kubelet
+
+resolv.conf also has search entry
+search default.svc.cluster.local svc.cluster.local cluster.local
+
+You cant reach pod like service, you need to enter complete FQDN
+# host 10-244-2-5.default.pod.cluster.local
+
+
+***** Practise test
+Execute nslookup from a pod and redirect output to a file
+#  kubectl exec -it hr -- nslookup mysql.payroll > /root/CKA/nslookup.out
+
+
+***** Ingress
+Ingress helps users to access application using single externally accessible URL. That can be configured to route to different services within the cluster based on URL path.
+
+At same time implement SSL security
+
+Layer 7 load balancer.
+
+Even with ingress you need to expose the service of ingress as NodePort (one-time configuration)
+
+How to configure it?
+
+- Use a reverse proxy Nginx/ha-proxy (ingress controller)
+- Configure (Ingress resources)
+
+Kubernetes cluster does not come with ingress controller by default.
+
+List of ingress controller
+- Cloud  LB
+- Nginx
+- Contour
+- HAProxy
+- Traefic
+- Istio
+
+
+GCE and Nginx are currently being maintained by kubernetes project.
+
+This ingress controller are just not another load balancer nginx server. The load balancer components are part of it. Ingress controllers have additional intelligence built into them to monitor the kubernetes cluster for new definitions, for ingress resources and configure nginx server accordingly.
+
+Nginx is deployed as another deployment in kubernetes
+Definition file:
+-----------------
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  nameL nginx-ingress-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      nameL nginx-ingress
+  template:
+    metadata:
+      labels:
+        name: nginx-ingress
+    spec:
+      containers:
+        - name: nginx-ingress-controller
+          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.21.0
+      args:
+        - /nginx-ingress-controller
+        - --configmap=$(POD_NAMESPACE)/nginx-configuration
+      env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      ports:
+        - name: http
+          containerPort: 80
+        - name: https
+          containerPort: 443
+
+
+
+Then we need a nodeport service definition file
+----------------
+apiVersion: v1
+kind: Service
+metadata:
+  nameL nginx-ingress
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  - port: 443
+    targetPort: 443
+    protocol: TCP
+    name: https
+  selector:
+    nameL nginx-ingress
+
+
+For authentication
+---------
+apiVersionL v1
+kind: ServiceAccount
+metadata:
+  name: nginx-ingress-serviceaccount
+
+Within nginx image, the command to start nginx is located at /nginx-ingress-controller
+
+Other configuration parameter data are:
+- err-log-path
+- keep-alive
+- ssl-protocols
+
+In order to decouple the above configuration parameter data, you can pass these values as configmaps.
+------------
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  nameL nginx-configuration.
+
+
+Ingress Resource  - Congigure to single url or path based routing
+
+Ingress resource is created using definition file
+--------------
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-wear
+spec:
+  backend:
+    serviceName: wear-service
+    servicePort: 80
+
+# kubectl create -f ingress-wear.yaml
+
+# kubectl get ingress
+
+We need rules to route traffic based on conditions
+vi ingress-wear-watch.yaml
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-wear
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /wear
+        backend:
+           serviceName: wear-service
+           servicePort: 80
+      - path: /watch
+        backend:
+           serviceName: watch-service
+           servicePort: 80
+
+
+Default Backend: If a user tries to access the path that is not defined in the rules, then user is routed to default backend.
+
+For multiple domains
+----------
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+   name: ingress-wear-watch
+spec:
+  rules:
+  - host: wear.my-online-store.com
+    http:
+      paths:
+      - backend:
+          serviceName: wear-service
+          servicePort: 80
+  - host: watch.my-online-store.com
+    http:
+      paths:
+      - backend:
+          serviceName: watch-service
+          servicePort: 80
+
+
+***** Practise test
+- To view the host configured on the ingress-resource
+# kubectl describe ingress --namespace app-space
+
+Change the URL at which applications are made available
+# kubectl edit ingress --namespace app-space
+
+Make new application available
+ /var/answers
+ controlplane $ more ingress-pay.yaml 
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: test-ingress
+  namespace: critical-space
+  annotations:
+    nginx.ingress.kubernetes.io/rewri e-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /pay
+        backend:
+          serviceName: pay-service
+          servicePort: 828
+
+
+# kubectl -n app-space get ingress ingress-wear-watch -o yaml > ingress.yaml
+
+# vi ingress.yaml
+
+
+***** Ingress - Annotations and rewrite-target
+
+Different ingress controllers have different options that can be used to customise the way it works. NGINX Ingress controller has many options that can be seen here. I would like to explain one such option that we will use in our labs. The Rewrite target option.
+
+
+Our watch app displays the video streaming webpage at http://<watch-service>:<port>/
+
+Our wear app displays the apparel webpage at http://<wear-service>:<port>/
+
+We must configure Ingress to achieve the below. When user visits the URL on the left, his request should be forwarded internally to the URL on the right. Note that the /watch and /wear URL path are what we configure on the ingress controller so we can forwarded users to the appropriate application in the backend. The applications don't have this URL/Path configured on them:
+
+http://<ingress-service>:<ingress-port>/watch --> http://<watch-service>:<port>/
+
+http://<ingress-service>:<ingress-port>/wear --> http://<wear-service>:<port>/
+
+Without the rewrite-target option, this is what would happen:
+
+http://<ingress-service>:<ingress-port>/watch --> http://<watch-service>:<port>/watch
+
+http://<ingress-service>:<ingress-port>/wear --> http://<wear-service>:<port>/wear
+
+Notice watch and wear at the end of the target URLs. The target applications are not configured with /watch or /wear paths. They are different applications built specifically for their purpose, so they don't expect /watch or /wear in the URLs. And as such the requests would fail and throw a 404 not found error.
+
+To fix that we want to "ReWrite" the URL when the request is passed on to the watch or wear applications. We don't want to pass in the same path that user typed in. So we specify the rewrite-target option. This rewrites the URL by replacing whatever is under rules->http->paths->path which happens to be /pay in this case with the value in rewrite-target. This works just like a search and replace function.
+
+For example: replace(path, rewrite-target)
+In our case: replace("/path","/")
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: test-ingress
+  namespace: critical-space
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /pay
+        backend:
+          serviceName: pay-service
+          servicePort: 8282
+
+In another example given here, this could also be:
+
+replace("/something(/|$)(.*)", "/$2")
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  name: rewrite
+  namespace: default
+spec:
+  rules:
+  - host: rewrite.bar.com
+    http:
+      paths:
+      - backend:
+          serviceName: http-svc
+          servicePort: 80
+        path: /something(/|$)(.*)
+
+
+***** Practise Test - Ingress2
+
+1. Deploy a new ingress controller.
+(a) create namespace
+# kubectl create ns ingress-space
+
+(b) Nginx controller required confgmap
+# kubectl create cm nginx-configuiration -n ingress-space
+
+(c) Nginx ingress controller requires service account
+# kubectl create sa ingress-serviceaccount -n ingress-space
+
+(d) create role and role-bindings
+# kubectl -n ingress-space get roles rolebindings
+
+(e) DEploy ingress controller
+vi /root/ingress-controller
+<correct namespace>
+# kubectl apply -f ingrss-controller.yaml
+<correct indentation>
+<correct API version>
+
+(f) create a service to make ingress available to external users
+# kubectl -n ingress-space expose deployment ingress-controller --name ingress --port 80 --target-port 80 --type NodePort --dry-run -o yaml > ingress-svc.yaml
+# vi ingress-svc.yaml
+<set namespace>
+<add  nodePort>
+# kubectl apply -f ingress-svc.yaml
+
+(g) Create the ingress resource to make the applications available at /wear and /watch on the ingress service
+< copy the template from documentation>
+vi ingress.yaml
+< change definition file>
+
+
+

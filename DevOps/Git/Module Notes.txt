@@ -1,0 +1,93 @@
+***** Version control with Git.
+
+The practice of tracking and managing changes to software code.
+
+SCM - Source code management
+
+***** Working with Git
+
+- To configure credentials
+$ git config --global user.name "karthikshekar"
+$ git config --global user.email "karthik.shekar@yahoo.com"
+$ git config -l 
+
+- To clone repo
+$ git clone <repo>
+
+- To create an empty repository or initialize local repo
+$ mkdir demo-repo
+$ cd demo-repo
+$ git init
+$ touch file1.txt
+$ cat > file1.txt
+This is test code
+$ ls
+$ git ls-files -> it wont display any files as file as of now is in local copy
+$ git status - will show untracked files
+$ git add file1.txt
+$ git status
+$ git commit -m "file" file1.txt
+
+(To bring back from staging area to local)
+$ git rm --cached <file>
+
+$ git log
+$ git show <commitID> -> to see what happend on that commit
+
+$ git restore file1.txt -> to revert to previous commit
+
+To see coommits in short 
+$ git log --oneline
+
+$ git diff file2.txt - shows difference between original and new changes to file.
+
+$ git diff --staged file2.txt - to find out diff once the code is moved to staging area
+
+$ git ls-file
+
+.gitignore - to ignore files from git
+
+$ git branch - to show all branches
+
+To create a branch
+$ git branch <branchname>
+
+Merging files
+$ git branch
+move files from one branch to another branch
+$ git checkout dev - move to target branch
+$ git merge qa - merge the source branch
+$ git log --oneline
+$ git show <commit id>
+
+$ git merge dev master - from source dev to master
+$ git checkout master
+$ git merge dev
+
+Merge Conflicts
+- resolve the merge
+$ vi file.txt
+edit and remove lines hat are not required
+Whenever there a partial commit
+$ git commit -i -m "conlfct-resolved" sample.txt
+
+
+$ git stash - If we made change to file, we dont want to commit also do not want to delete, store the code safely for future
+2 things happens
+(a) no longer shows in git status to commit or staged
+
+$ git stash list (has stash ID)
+$ git stash pop <stashID> - to remove stashes
+there is a stash repository behind the scenes
+
+$ git stash pop <stash ID>
+
+If there is new data added after stashing, and if we unstash the old one, there will be conflict, the new changes needs
+to be committed.
+
+there will be merge conflicts as the same lines will collide
+
+delete stash
+$ git stash drop <stashID>
+
+

@@ -1,0 +1,1397 @@
+Session 10 - Metadata cfn-init and helper scripts
+--------------------------------------------------
+
+***** Metdata cfn-init introduction
+
+AWS CloudFormation provides the following python helper scripts that we can use to install software and start services on Amazon EC2 that we create as part of stack
+- cfn-init
+- cfn-signal
+- cfn-get-metadata
+- cfn-hup
+
+
+***** Metadata cfn-init - BAse template overview
+- Resources
+Security group
+VM Instance
+
+- Paramters
+We will parameterize keyname
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+
+
+***** Metadata cfn-init - Metadata format
+- Type AWS::CloudFormation::Init will be used to include metadata section on an ec2 instacne for cfn-init helper script
+- Configuration is separated in to sections
+- Metadata is organized in to config keys, which we can even group in configsets.
+- By default cfn-init calls and processes the metadata section when it has single config key (No configsets defined)
+- We can even specify configsets as input to cfn-init script so that it can process the entire configset with all its configkeys. We will see it in detail in configsets section
+- The Cfn-init helper script processes the configuration sections in the order specified in syntax section.
+
+Metadata structure:
+
+Metadata:
+  Comment: Deploy a simple tomcat application
+  AWS::CloudFormation::Init:
+    Config:
+      packages:
+      groups:
+      users:
+      sources:
+      files:
+      commands:
+      services:
+
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages:
+          groups:
+          users:
+          sources
+          files:
+          commands:
+          services:
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+
+
+***** Metadata cfn-init - Packages
+
+- We can use packages key to download and install pre-packaged applications.
+- On windows systems packages key supports only the MSI installer.
+- Supported package format
+  apt
+  msi
+  python
+  rpm
+  rubygems
+  yum
+
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages: 
+            yum:
+              java-1.8.0-openjdk.x86_64: []
+              java-1.8.0-openjdk-devel: []
+              tomcat8: []
+          groups:
+          users:
+          sources
+          files:
+          commands:
+          services:
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+
+
+***** Metadata - cfn-init - Groups
+- We can use groups to create linux/unix groups and assign to group id's
+- Group key is not supported for windows systems
+- We can create multiple groups as required.
+- We can creae without groupid or create with a desired group id
+- Syntax:
+groups:
+  groupone: {}
+  grouptwo:
+    gid: "501"
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages: 
+            yum:
+              java-1.8.0-openjdk.x86_64: []
+              java-1.8.0-openjdk-devel: []
+              tomcat8: []
+          groups:
+            groupone: {}
+            grouptwo:
+              gid: "501"
+          users:
+          sources
+          files:
+          commands:
+          services:
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+
+
+
+***** Metadata cfn-inint - Users
+- We can use the users key to create Linux/Unix users in EC2 instance.
+- User key is not supported for Windows systems
+- The following are the supported keys
+Uid
+groups
+homeDir
+- Syntax
+users:
+  user1:
+    groups:
+      - groupone
+      - grouptwo
+    uid: "501"
+    homeDir: "/tmp"
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages: 
+            yum:
+              java-1.8.0-openjdk.x86_64: []
+              java-1.8.0-openjdk-devel: []
+              tomcat8: []
+          groups:
+            groupone: {}
+            grouptwo:
+              gid: "501"
+          users:
+            user1:
+              groups:
+                - groupone
+                - grouptwo
+              uid: "501"
+              homeDir: "/tmp"
+          sources
+          files:
+          commands:
+          services:
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+
+
+***** Metadata cfn-init - Sources
+- We can use the sources key to download an archive file and unpack it in a target directory on EC2 instance.
+- This key is fully supported for both Linux and Windows systems
+- Supported arhive formats
+tar
+tar+gzip
+tar+bz2
+zip
+- Syntax
+sources:
+  /tmp: "https://s3.us-east-2;;;;;;;"
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages: 
+            yum:
+              java-1.8.0-openjdk.x86_64: []
+              java-1.8.0-openjdk-devel: []
+              tomcat8: []
+          groups:
+            groupone: {}
+            grouptwo:
+              gid: "501"
+          users:  
+            user1:
+              groups:
+                - groupone
+                - grouptwo
+              uid: "501"
+              homeDir: "/tmp"
+          sources:
+            /tmp: "https://s3.us-east-2.amazonaws.com/"
+          files:
+          commands:
+          services:
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+
+
+***** Metadata cfn-init - files
+- We can use the files key to create files on Ec2 instance
+- The content can be either inline in the template or the content can be pulled from a URL
+- The files are written to disk in alphabetical order
+- Supported keys
+  - Content
+  - Source
+  - Encoding (plain or base64)
+  - group
+  - owner
+  - mode
+  - authentication
+  - context
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages: 
+            yum:
+              java-1.8.0-openjdk.x86_64: []
+              java-1.8.0-openjdk-devel: []
+              tomcat8: []
+          groups:
+            groupone: {}
+            grouptwo:
+              gid: "501"
+          users:
+            user1:
+              groups:
+                - groupone
+                - grouptwo
+              uid: "501"
+              homeDir: "/tmp"
+          sources:
+            /tmp: "https://s3.us-east-2.amazonaws.com/"
+          files:
+            "/etc/cfn/cfn-hup.conf":
+              content: !sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS:;Region}
+                interval=7
+              mode: "000400"
+              owner: "root"
+              group: "root"
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.MyVMInstance.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName}  --resource MyVMInstacne --region ${AWS::Region} 
+              mode: "000400"
+              owner: "root"
+              group: "root"
+
+          commands:
+          services:
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+
+
+
+***** Metadata cfn-init - commands
+- We can use commands key to execute commands on Ec2 instance.
+- The commands are processesd in alphabetical order by name
+- Supported keys
+Command
+env
+cwd
+test
+ignoreErrors
+waitAfterCompletion
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages: 
+            yum:
+              java-1.8.0-openjdk.x86_64: []
+              java-1.8.0-openjdk-devel: []
+              tomcat8: []
+          groups:
+            groupone: {}
+            grouptwo:
+              gid: "501"
+          users:
+            user1:
+              groups:
+                - groupone
+                - grouptwo
+              uid: "501"
+              homeDir: "/tmp"
+          sources:
+            /tmp: "https://s3.us-east-2.amazonaws.com/"
+          files:
+            "/etc/cfn/cfn-hup.conf":
+              content: !sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS:;Region}
+                interval=7
+              mode: "000400"
+              owner: "root"
+              group: "root"
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.MyVMInstance.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName}  --resource MyVMInstacne --region ${AWS::Region} 
+              mode: "000400"
+              owner: "root"
+              group: "root"
+
+          commands:
+            test1:
+              command: "chmod 75 demo.war"
+              cwd: "/tmp"
+            test2:
+              command: "sudo yum -y erase java-1.7.0-openjdk.x86_64"
+              cwd: "~"
+            test3:
+              command: "rm -rf demo*"
+              cwd: "/var/lib/tomcat8/webapps"
+            test4: 
+              command: "cp demo.war /var/lib/tomcat8/webapps"
+              cwd: "/tmp"
+
+
+          services:
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+
+
+***** Metadata cfn-init - Services
+- We can use services key to define which service should be enabled or disabled when the instance is launched
+- On Linux systems this key is supported by using sysvinit
+- On Windows systems, it is supported by using Windows service manager
+- Services key also allows us to specify dependencies on sources, packages and files so that if a restart is needed due to files being installed, cfn-init will take care of the service restart.
+- Support keys
+  ensureRunning
+  enabled
+  files
+  sources
+  packages
+  commands
+
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages: 
+            yum:
+              java-1.8.0-openjdk.x86_64: []
+              java-1.8.0-openjdk-devel: []
+              tomcat8: []
+          groups:
+            groupone: {}
+            grouptwo:
+              gid: "501"
+          users:
+            user1:
+              groups:
+                - groupone
+                - grouptwo
+              uid: "501"
+              homeDir: "/tmp"
+          sources:
+            /tmp: "https://s3.us-east-2.amazonaws.com/"
+          files:
+            "/etc/cfn/cfn-hup.conf":
+              content: !sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS:;Region}
+                interval=7
+              mode: "000400"
+              owner: "root"
+              group: "root"
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.MyVMInstance.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName}  --resource MyVMInstacne --region ${AWS::Region} 
+              mode: "000400"
+              owner: "root"
+              group: "root"
+
+          commands:
+            test1:
+              command: "chmod 75 demo.war"
+              cwd: "/tmp"
+            test2:
+              command: "sudo yum -y erase java-1.7.0-openjdk.x86_64"
+              cwd: "~"
+            test3:
+              command: "rm -rf demo*"
+              cwd: "/var/lib/tomcat8/webapps"
+            test4: 
+              command: "cp demo.war /var/lib/tomcat8/webapps"
+              cwd: "/tmp"
+
+
+          services:
+            sysvinit:
+              tomcat8:
+                enabled: "true"
+                ensureRunning: "true"
+
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+
+
+***** Userdata - Update helper scripts - aws:cfn-bootstrap
+- Helper scripts are updated periodically
+- We need to ensure that the below listed commands is included in UserData of our template before we call the helper scripts to ensure that our launched instances get the latest helper scripts
+
+UserData:
+  "Fn::Base64":
+    !Sub |
+      #!/bin/bash -xe
+      # Get latest CloudFormation Package - These packages change frequesntly
+      yum update -y aws-cfn-bootstrap
+
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages: 
+            yum:
+              java-1.8.0-openjdk.x86_64: []
+              java-1.8.0-openjdk-devel: []
+              tomcat8: []
+          groups:
+            groupone: {}
+            grouptwo:
+              gid: "501"
+          users:
+            user1:
+              groups:
+                - groupone
+                - grouptwo
+              uid: "501"
+              homeDir: "/tmp"
+          sources:
+            /tmp: "https://s3.us-east-2.amazonaws.com/"
+          files:
+            "/etc/cfn/cfn-hup.conf":
+              content: !sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS:;Region}
+                interval=7
+              mode: "000400"
+              owner: "root"
+              group: "root"
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.MyVMInstance.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName}  --resource MyVMInstacne --region ${AWS::Region} 
+              mode: "000400"
+              owner: "root"
+              group: "root"
+
+          commands:
+            test1:
+              command: "chmod 75 demo.war"
+              cwd: "/tmp"
+            test2:
+              command: "sudo yum -y erase java-1.7.0-openjdk.x86_64"
+              cwd: "~"
+            test3:
+              command: "rm -rf demo*"
+              cwd: "/var/lib/tomcat8/webapps"
+            test4: 
+              command: "cp demo.war /var/lib/tomcat8/webapps"
+              cwd: "/tmp"
+
+
+          services:
+            sysvinit:
+              tomcat8:
+                enabled: "true"
+                ensureRunning: "true"
+
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash -xe
+            # Get Latest cfn package
+            yum update -y aws-cfn-bootstrap
+
+
+***** Userdata cfn-init
+- The cfn-init helper script reads template metadata from AWS::CloudFormation::Init key and acts accordingly to:
+  - Fetch and pase metadata from AWS CloudFormation
+  - Install packages
+  - Write files to disk
+  - Enable/Disable and start/stop services
+- If we use cfn-init to update an existing file, it creates a backup copy of the original file in the same directory with a .bak extension.
+- cfn-init does not require credentials. However, if no credentials are specified, AWS CloudFormation checks for stack membership and limits the scope of the call to the stack that the instance belongs to.
+
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages: 
+            yum:
+              java-1.8.0-openjdk.x86_64: []
+              java-1.8.0-openjdk-devel: []
+              tomcat8: []
+          groups:
+            groupone: {}
+            grouptwo:
+              gid: "501"
+          users:
+            user1:
+              groups:
+                - groupone
+                - grouptwo
+              uid: "501"
+              homeDir: "/tmp"
+          sources:
+            /tmp: "https://s3.us-east-2.amazonaws.com/"
+          files:
+            "/etc/cfn/cfn-hup.conf":
+              content: !sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS:;Region}
+                interval=7
+              mode: "000400"
+              owner: "root"
+              group: "root"
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.MyVMInstance.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName}  --resource MyVMInstacne --region ${AWS::Region} 
+              mode: "000400"
+              owner: "root"
+              group: "root"
+
+          commands:
+            test1:
+              command: "chmod 75 demo.war"
+              cwd: "/tmp"
+            test2:
+              command: "sudo yum -y erase java-1.7.0-openjdk.x86_64"
+              cwd: "~"
+            test3:
+              command: "rm -rf demo*"
+              cwd: "/var/lib/tomcat8/webapps"
+            test4: 
+              command: "cp demo.war /var/lib/tomcat8/webapps"
+              cwd: "/tmp"
+
+
+          services:
+            sysvinit:
+              tomcat8:
+                enabled: "true"
+                ensureRunning: "true"
+
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash -xe
+            # Get Latest cfn package
+            yum update -y aws-cfn-bootstrap
+            # Start cfn-init to install all metadata content
+            /opt/aws/bin/cfn-init -s ${AWS::StackId} -r MyVMInstance --region ${AWS::Region} || error_exit 'Failed to run'
+
+
+***** Userdata - cfn-signal
+- The cfn-signal helper script signals AWS CloudFormation to indicate whether Amazon EC2 instances have been successfully created or update.
+- If we install and configure Software applications on instances, we can signal AWS CloudFormation when those software applications are ready
+- We can use the cfn-signal script in conjunction with a creation policy
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages: 
+            yum:
+              java-1.8.0-openjdk.x86_64: []
+              java-1.8.0-openjdk-devel: []
+              tomcat8: []
+          groups:
+            groupone: {}
+            grouptwo:
+              gid: "501"
+          users:
+            user1:
+              groups:
+                - groupone
+                - grouptwo
+              uid: "501"
+              homeDir: "/tmp"
+          sources:
+            /tmp: "https://s3.us-east-2.amazonaws.com/"
+          files:
+            "/etc/cfn/cfn-hup.conf":
+              content: !sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS:;Region}
+                interval=7
+              mode: "000400"
+              owner: "root"
+              group: "root"
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.MyVMInstance.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName}  --resource MyVMInstacne --region ${AWS::Region} 
+              mode: "000400"
+              owner: "root"
+              group: "root"
+
+          commands:
+            test1:
+              command: "chmod 75 demo.war"
+              cwd: "/tmp"
+            test2:
+              command: "sudo yum -y erase java-1.7.0-openjdk.x86_64"
+              cwd: "~"
+            test3:
+              command: "rm -rf demo*"
+              cwd: "/var/lib/tomcat8/webapps"
+            test4: 
+              command: "cp demo.war /var/lib/tomcat8/webapps"
+              cwd: "/tmp"
+
+
+          services:
+            sysvinit:
+              tomcat8:
+                enabled: "true"
+                ensureRunning: "true"
+
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash -xe
+            # Get Latest cfn package
+            yum update -y aws-cfn-bootstrap
+            # Start cfn-init to install all metadata content
+            /opt/aws/bin/cfn-init -s ${AWS::StackId} -r MyVMInstance --region ${AWS::Region} || error_exit 'Failed to run'
+            # Signal the status from cfn-init
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource MyVMInstance --region 
+            # Start cfn-hup daemon so that it will keep listening to any changes to EC2 instance metadata
+            /opt/aws/bin/cfn-hup || error_exit "Failed to start cfn-hup"
+
+***** Outputs and create stack
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages: 
+            yum:
+              java-1.8.0-openjdk.x86_64: []
+              java-1.8.0-openjdk-devel: []
+              tomcat8: []
+          groups:
+            groupone: {}
+            grouptwo:
+              gid: "501"
+          users:
+            user1:
+              groups:
+                - groupone
+                - grouptwo
+              uid: "501"
+              homeDir: "/tmp"
+          sources:
+            /tmp: "https://s3.us-east-2.amazonaws.com/"
+          files:
+            "/etc/cfn/cfn-hup.conf":
+              content: !sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS:;Region}
+                interval=7
+              mode: "000400"
+              owner: "root"
+              group: "root"
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.MyVMInstance.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName}  --resource MyVMInstacne --region ${AWS::Region} 
+              mode: "000400"
+              owner: "root"
+              group: "root"
+
+          commands:
+            test1:
+              command: "chmod 75 demo.war"
+              cwd: "/tmp"
+            test2:
+              command: "sudo yum -y erase java-1.7.0-openjdk.x86_64"
+              cwd: "~"
+            test3:
+              command: "rm -rf demo*"
+              cwd: "/var/lib/tomcat8/webapps"
+            test4: 
+              command: "cp demo.war /var/lib/tomcat8/webapps"
+              cwd: "/tmp"
+
+
+          services:
+            sysvinit:
+              tomcat8:
+                enabled: "true"
+                ensureRunning: "true"
+
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash -xe
+            # Get Latest cfn package
+            yum update -y aws-cfn-bootstrap
+            # Start cfn-init to install all metadata content
+            /opt/aws/bin/cfn-init -s ${AWS::StackId} -r MyVMInstance --region ${AWS::Region} || error_exit 'Failed to run'
+            # Signal the status from cfn-init
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource MyVMInstance --region 
+            # Start cfn-hup daemon so that it will keep listening to any changes to EC2 instance metadata
+            /opt/aws/bin/cfn-hup || error_exit "Failed to start cfn-hup"
+Outputs:
+  AppURL:
+    Description:
+    Value: !Sub 'http://${MyVMInstance.PublicDNSName}:8080/demp/hello'
+
+
+***** Creation Policy and Create stack
+- Associate the creation policy attribute with a resource to prevent its status from reaching create complete until AWS CloudFormation receives a specified number of sucess signals or the timeout period is exceeded.
+- To signal a resource we can use cfn-signal helper script
+- The creation policy is invoked only when AWS CloudFormation creates the associated resource
+- Currently, the only AWS CloudFormation resource that support creation policy are
+  AWS::AutoScaling::AutoScalingGroup
+  AWS::EC2::Instance
+  AWS::CloudFormation::WaitCondition
+- Use the creation policy atribute when you want to wait on resource configuration actions before stack creation proceeds
+- For Example, if we install and configure software applications on an Ec2 instance, we might want those applications to be running before proceeding. In such cases, we can add a creation policy attribute to the instance, and then send a success signal to the instance after the applications are installed and configured.
+
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages: 
+            yum:
+              java-1.8.0-openjdk.x86_64: []
+              java-1.8.0-openjdk-devel: []
+              tomcat8: []
+          groups:
+            groupone: {}
+            grouptwo:
+              gid: "501"
+          users:
+            user1:
+              groups:
+                - groupone
+                - grouptwo
+              uid: "501"
+              homeDir: "/tmp"
+          sources:
+            /tmp: "https://s3.us-east-2.amazonaws.com/"
+          files:
+            "/etc/cfn/cfn-hup.conf":
+              content: !sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS:;Region}
+                interval=7
+              mode: "000400"
+              owner: "root"
+              group: "root"
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.MyVMInstance.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName}  --resource MyVMInstacne --region ${AWS::Region} 
+              mode: "000400"
+              owner: "root"
+              group: "root"
+
+          commands:
+            test1:
+              command: "chmod 75 demo.war"
+              cwd: "/tmp"
+            test2:
+              command: "sudo yum -y erase java-1.7.0-openjdk.x86_64"
+              cwd: "~"
+            test3:
+              command: "rm -rf demo*"
+              cwd: "/var/lib/tomcat8/webapps"
+            test4: 
+              command: "cp demo.war /var/lib/tomcat8/webapps"
+              cwd: "/tmp"
+
+
+          services:
+            sysvinit:
+              tomcat8:
+                enabled: "true"
+                ensureRunning: "true"
+
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash -xe
+            # Get Latest cfn package
+            yum update -y aws-cfn-bootstrap
+            # Start cfn-init to install all metadata content
+            /opt/aws/bin/cfn-init -s ${AWS::StackId} -r MyVMInstance --region ${AWS::Region} || error_exit 'Failed to run'
+            # Signal the status from cfn-init
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource MyVMInstance --region 
+            # Start cfn-hup daemon so that it will keep listening to any changes to EC2 instance metadata
+            /opt/aws/bin/cfn-hup || error_exit "Failed to start cfn-hup"
+Outputs:
+  AppURL:
+    Description:
+    Value: !Sub 'http://${MyVMInstance.PublicDNSName}:8080/demp/hello'
+
+
+***** Userdata - cfn-hup and update the v2 version of app-update stack demo
+- cfn-hup helper is a daemon that detects changes in resource metadata and runs user-specified actions when a change is detected.
+- This allows us to make configuration updates on our running Ec2 instance through update stack feature
+- cfn-hup.conf
+   - cfn-hup.conf file stores the name of the stack and the AWS credentials that the cfn-hup daemon targets
+   - format of cfn-hup.conf
+   - We are creating this file using our Metadata key named files in our template.
+
+cfn-hup.conf file content
+  - stack
+  - credential-file
+  - role
+  - region
+  - umask (default: 022)
+  - Interval (default: 15)
+  - Verbose
+
+- hooks.d directory:
+  - To support composition of sevaral applications deploying change notification hooks, cfn-hup supportsa directory named hooks.d that is located in the hooks configuration directory
+  - We can place one or more additional hooks configuation files in the hooks.d directory.
+
+- hooks.conf
+  - When the action is run, it is run in a copy of the current environment (that cfn-hip is in), with cfn_old_metadata set to previous value of the path, the CFN_NEW_METADATA set to the current value.
+  - The hooks configuation file is located at cfn-hup daemon startup only, so new hooks will require the daemon to be restarted
+  - A cache of previous metadata values is stored at /var/lib/cfn-hup/data/metadata_db
+  - We can delte this cache to force cfn-hup to run all post.add actions again.
+
+  AWSTemplateFormatVersion: 2010-09-09
+Description: Helper Scripts demo
+
+Parameters:
+  Keyname:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with port 22 and 8080 inbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+    Metadata:
+      Comment: Deploy a simple tomcat application
+      AWS::CloudFormation::Key
+        config:
+          packages: 
+            yum:
+              java-1.8.0-openjdk.x86_64: []
+              java-1.8.0-openjdk-devel: []
+              tomcat8: []
+          groups:
+            groupone: {}
+            grouptwo:
+              gid: "501"
+          users:
+            user1:
+              groups:
+                - groupone
+                - grouptwo
+              uid: "501"
+              homeDir: "/tmp"
+          sources:
+            /tmp: "https://s3.us-east-2.amazonaws.com/"
+          files:
+            "/etc/cfn/cfn-hup.conf":
+              content: !sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS:;Region}
+                interval=7
+              mode: "000400"
+              owner: "root"
+              group: "root"
+            "/etc/cfn/hooks.d/cfn-auto-reloader.conf":
+              content: !sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.MyVMInstance.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName}  --resource MyVMInstacne --region ${AWS::Region} 
+              mode: "000400"
+              owner: "root"
+              group: "root"
+
+          commands:
+            test1:
+              command: "chmod 75 demo.war"
+              cwd: "/tmp"
+            test2:
+              command: "sudo yum -y erase java-1.7.0-openjdk.x86_64"
+              cwd: "~"
+            test3:
+              command: "rm -rf demo*"
+              cwd: "/var/lib/tomcat8/webapps"
+            test4: 
+              command: "cp demo.war /var/lib/tomcat8/webapps"
+              cwd: "/tmp"
+
+
+          services:
+            sysvinit:
+              tomcat8:
+                enabled: "true"
+                ensureRunning: "true"
+
+    Properties:
+      ImageID: ami-jdfsdfk900fsdf
+      InstanceType: t2.micro
+      Keyname: !Ref KeyName
+      SecurityGroup:
+        - !Ref MySecurityGroup
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash -xe
+            # Get Latest cfn package
+            yum update -y aws-cfn-bootstrap
+            # Start cfn-init to install all metadata content
+            /opt/aws/bin/cfn-init -s ${AWS::StackId} -r MyVMInstance --region ${AWS::Region} || error_exit 'Failed to run'
+            # Signal the status from cfn-init
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource MyVMInstance --region 
+            # Start cfn-hup daemon so that it will keep listening to any changes to EC2 instance metadata
+            /opt/aws/bin/cfn-hup || error_exit "Failed to start cfn-hup"
+Outputs:
+  AppURL:
+    Description:
+    Value: !Sub 'http://${MyVMInstance.PublicDNSName}:8080/demp/hello'

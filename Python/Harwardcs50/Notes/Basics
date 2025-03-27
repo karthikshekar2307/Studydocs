@@ -1,0 +1,10 @@
+***** Data types
+str
+int ( python supports interactive mode)
+float
+
+***** How to define your own function
+def - define a function (create/invent function)
+scope = define variable in a fucntion will be in that scope
+
+conditionals

@@ -1,0 +1,15 @@
+To use custom config file (default = $HOME/.kube/config)
+# export KUBECONFIG="/custom/path/.kube/config" (Environment Variable)
+# kubectl --kubeconfig="/custom/path/.kube/config"
+
+- First checks --kubeconfig parameter
+- Then, looks for KUBECONFIG environment Variable
+- Falls back to default one $HOME/.kube/config
+
+To View the config file currently used by yout local kubectl installation
+# kubectl config View
+
+
+
+
+

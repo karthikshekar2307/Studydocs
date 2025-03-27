@@ -1,0 +1,15 @@
+- Install available plugins to enable 
+Role-based authorization 
+
+- Create roles
+- Provide user the access to the roles/permissions
+- Add user to the roles
+
+
+Process:
+- Install Role based authorization plugins
+- Create user
+
+to enable role based authenticaton
+- Go to manage Jenkins
+- use security option > enable using role based authentication

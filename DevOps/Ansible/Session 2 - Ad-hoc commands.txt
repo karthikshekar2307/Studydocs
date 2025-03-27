@@ -1,0 +1,13 @@
+Ad-hoc commands - simple linux based commands to perform the activity in the nodes.
+Run commands to get task done in node1 and node2
+
+*** Steps
+- first login as ansible user from ansible server
+# ansible demo -a "touch newfile"
+demo - is a group
+<output with yellow, changes is implemented>
+
+# ansible demo -a "sudo yum install httpd"
+
+To run a command on a specific machine.
+# ansible demo[0] -a "sudo yum install httpd"

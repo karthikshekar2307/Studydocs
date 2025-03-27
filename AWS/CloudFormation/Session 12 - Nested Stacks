@@ -1,0 +1,494 @@
+Session 12 - Nested Stacks
+----------------------------
+
+***** Nested stacks introduction
+- The AWS::CloudFormation::Stack type nests a stack as a resource in a top-level template
+- We can add output values from a nested stack with the root stack.
+- We use Fn::GetAtt function with nested stacks logical name and the name of the output value in nested stack.
+
+Syntax:
+vpcID: !GetAtt NestedStackName.Outputs.NestedStackOutputName
+
+NetworkInterfaces:
+  - AssociatePublicIpAddress: "True"
+    DeviceIndex: "0"
+    SubnetID: !GetAtt VPCStack.Outputs.Subnet01ID
+    GroupSet:
+      - !GetAtt SecurityGroupStack.outputs.DevSGGroupId
+
+
+***** Manual VPC Creation
+1. Create VPC
+2. Create Subnet
+3. Create route table
+4. Associate subnet in route table
+5. Create Internet gateway
+6. Associate Internet gateway to VPC
+7. Create Route to allow internete via IGW
+
+
+**** Create VPC
+AWSTemplateFormatVersion: '2010-0909'
+Description: VPC Nested Stack Template
+
+Resources:
+  myVPC: 
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDNSResolution: true
+      Tags:
+        - key: Name
+          Value: !Sub "${AWS::StackName}-myVPC"
+  Subnet01:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VPCId: !Ref myVPC
+      CidrBlock: 10.0.1.0/24
+      Tags:
+        - Key: Name
+          Value: !Sub  "${AWS::StackName}-Subnet01"
+      AvailabilityZone:
+        Fn::Select:
+          - '0'
+          - Fn::GetAZs:
+              Ref: AWS::Region
+   Subnet02:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VPCId: !Ref myVPC
+      CidrBlock: 10.0.2.0/24
+      Tags:
+        - Key: Name
+          Value: !Sub  "${AWS::StackName}-Subnet02"
+      AvailabilityZone:
+        Fn::Select:
+          - '1'
+          - Fn::GetAZs:
+              Ref: AWS::Region
+   RouteTable01:
+     Type: AWS::EC2::RouteTable
+     Properties:
+       VpcId: !Ref myVPC
+       Tags:
+         - Key: Name
+           Value: Public Subnet
+         - Key: Network
+           Value: Public network
+   RouteTable02:
+     Type: AWS::EC2::RouteTable
+     Properties:
+       VpcId: !Ref myVPC
+       Tags:
+         - Key: Name
+           Value: Private Subnet
+         - Key: Network
+           Value: Private network
+   Subnet01RouteTableAssociation:
+     Type: AWS::EC2::SubnetRouteTableAssociation
+     Properties:
+       SubnetId: !Ref Subnet01
+       RouteTableId:!Ref RouteTable01
+   Subnet02RouteTableAssociation:
+     Type: AWS::EC2::SubnetRouteTableAssociation
+     Properties:
+       SubnetId: !Ref Subnet02
+       RouteTableId:!Ref RouteTable02
+    InternetGateway:
+      Type: AWS::EC2:InternetGateway
+    VPCGatewayAttachment:
+      Type: AWS::EC2::VPCGatewayAttachment
+      Properties:
+        InternetGatewayId: !Ref Internetgateway
+        VPCId: !Ref myVPC
+   Route01:
+     Type: AWS::EC2::Route
+     Properties:
+       RouteTableId: !Ref RouteTable01
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId: !Ref InternetGateway
+    NatGateway:
+      Type: AWS::EC2::NatGateway
+      Properties: 
+        SubnetID: !Ref Subnet01
+    Route02:
+       Type: AWS::EC2::Route
+       Properties:
+       RouteTableId: !Ref RouteTable02
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId: !Ref NatGateway
+
+
+**** Parameterize CIDR
+
+AWSTemplateFormatVersion: '2010-0909'
+Description: VPC Nested Stack Template
+
+Parameters:
+  VpcBlock:
+    Type: String
+    Default: 10.0.0.0/6
+    Description: VPC CIDR Range
+  Subnet01Block:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: CidrBlock for Subnet 01 within the VPC.
+  Subnet02Block:
+     Type: String
+     Default: 10.0.2.0/24
+     Description: CidrBlock for Subnet 02 within the VPC.
+  Subnet03Block:
+     Type: String
+     Default: 10.0.3.0/24
+     Description: CidrBlock for Subnet 02 within the VPC.
+
+ Metadata:
+   AWS::CloudFormation::Interface:
+     ParameterGroups:
+       - Label:
+            default: Dev VPC Network Configuration
+            Parameters:
+              - VpcBlock
+              - Subnet01Block
+              - Subnet02Block
+              - Subnet03Block
+      ParameterLabels:
+        VPCBlock:
+          Default: VPC CIDR Range Selection
+
+Resources:
+  myVPC: 
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcBlock
+      EnableDnsHostnames: true
+      EnableDNSResolution: true
+      Tags:
+        - key: Name
+          Value: !Sub "${AWS::StackName}-myVPC"
+  Subnet01:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VPCId: !Ref myVPC
+      CidrBlock: !Ref Subnet01Block
+      Tags:
+        - Key: Name
+          Value: !Sub  "${AWS::StackName}-Subnet01"
+      AvailabilityZone:
+        Fn::Select:
+          - '0'
+          - Fn::GetAZs:
+              Ref: AWS::Region
+   Subnet02:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VPCId: !Ref myVPC
+      CidrBlock: !Ref Subnet02Block
+      Tags:
+        - Key: Name
+          Value: !Sub  "${AWS::StackName}-Subnet02"
+      AvailabilityZone:
+        Fn::Select:
+          - '1'
+          - Fn::GetAZs:
+              Ref: AWS::Region
+    Subnet03:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VPCId: !Ref myVPC
+      CidrBlock: !Ref Subnet03Block
+      Tags:
+        - Key: Name
+          Value: !Sub  "${AWS::StackName}-Subnet03"
+      AvailabilityZone:
+        Fn::Select:
+          - '2'
+          - Fn::GetAZs:
+              Ref: AWS::Region
+   RouteTable01:
+     Type: AWS::EC2::RouteTable
+     Properties:
+       VpcId: !Ref myVPC
+       Tags:
+         - Key: Name
+           Value: Public Subnet
+         - Key: Network
+           Value: Public network
+   RouteTable02:
+     Type: AWS::EC2::RouteTable
+     Properties:
+       VpcId: !Ref myVPC
+       Tags:
+         - Key: Name
+           Value: Private Subnet
+         - Key: Network
+           Value: Private network
+
+   Subnet01RouteTableAssociation:
+     Type: AWS::EC2::SubnetRouteTableAssociation
+     Properties:
+       SubnetId: !Ref Subnet01
+       RouteTableId:!Ref RouteTable01
+
+   Subnet02RouteTableAssociation:
+     Type: AWS::EC2::SubnetRouteTableAssociation
+     Properties:
+       SubnetId: !Ref Subnet02
+       RouteTableId:!Ref RouteTable02
+
+   Subnet03RouteTableAssociation:
+     Type: AWS::EC2::SubnetRouteTableAssociation
+     Properties:
+       SubnetId: !Ref Subnet03
+       RouteTableId:!Ref RouteTable02
+
+    InternetGateway:
+      Type: AWS::EC2:InternetGateway
+
+    VPCGatewayAttachment:
+      Type: AWS::EC2::VPCGatewayAttachment
+      Properties:
+        InternetGatewayId: !Ref Internetgateway
+        VPCId: !Ref myVPC
+
+   Route01:
+     DependsOn: VPCGatewayAttachment
+     Type: AWS::EC2::Route
+     Properties:
+       RouteTableId: !Ref RouteTable01
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId: !Ref InternetGateway
+
+    NatGateway:
+      Type: AWS::EC2::NatGateway
+      Properties: 
+        SubnetID: !Ref Subnet01
+
+    Route02:
+       Type: AWS::EC2::Route
+       Properties:
+       RouteTableId: !Ref RouteTable02
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId: !Ref NatGateway
+       
+Outputs:
+  Subnet01Id:
+    Description: Subnet 01 ID
+    Value: !Ref Subnet01
+  Subnet02Id: 
+    Description: Subnet 02 Id
+    Value: !Ref Subnet02
+  Subnet03Id: 
+    Description: Subnet 03 Id
+    Value: !Ref Subnet03
+  VpcID:
+    Description: Vpc ID
+    Value: !Ref myVPC
+
+
+**** Create root stack template
+AWSTemplateFormatVersion '2010-09-09'
+Description: Root Stack Template
+
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair:KeyName
+
+Resources:
+  VPCStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: 
+      Parameters:
+        VpcBlock:
+        Subnet01Block:
+        Subnet02Block:
+        Subnet03Block:
+    TimeOutInMinutes: 5
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageID: ami-323434
+      InstanceType: t.micro
+      Keyname: !Ref KeyName
+      UserData:
+        Fn::Base64 |
+          #!/bin/bash
+          sudo yum update
+          sudo yum -y erase java-1.7.0-openjdk.x8_64
+          servce tomcat8 start
+          mkdir /usr/share/tomcat/webapps/ROOT
+          touch /usr/share/tomcat8/webapps/ROOT/inde.html
+          echo "Cloud Formation Tomcat" > /usr/share/tomcat8/webapps/root/
+
+Outputs:
+  AppURL: 
+    Description: Application URL to access
+      Value: !Sub 'http://${MyVMInstance.PublicName}:8080/inde.html'
+
+
+***** Create Root stack template - Create base template
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Root Stack template
+
+Parameters:
+  MyKeyName: 
+    Type: AWS::EC2::KeyPair::KeyName
+
+  VpcBlock:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: VPC CIDR Range
+
+  Subnet01Block:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: CidrBlock for subnet01 within the VPC.
+
+Resources:
+
+  VPCStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: copy URL
+      Parameters:
+        VPCBlock: !Ref VPCBlock
+        Subnet01Block: !Ref Subnet01Block
+    TimeOutInMinutes: 5
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-sdjfsdje
+      InstanceType: t2.micro
+      KeyName: !MyKeyName
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          SubnetId:!GetAtt VPCStack.outputs.Subnet01Id
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+
+
+Outputs:
+  AppURL: 
+    Description: Application URL to access
+    Value: !Sub http://
+
+
+***** Nested VPC Stack demo
+
+
+***** Create Nested Stack seecurity group stack template.
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Root Stack Template
+
+Parameters:
+  VPCId:
+    Description: Create security group in this respective VPC
+    Type: AWS::EC2::VPC::Id
+
+Resources:
+  DevSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Dev Apps Security Group
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          CidrIp: 0.0.0.0/0
+      VpcID: !Ref VPCId
+
+
+Outputs:
+  DevSGGroupId:
+    Description: Dev Security Group
+    Value: !Ref DevSecurityGroup
+
+
+***** Update root stack template - Nest Security group stack in root stack
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Root Stack template
+
+Parameters:
+  MyKeyName: 
+    Type: AWS::EC2::KeyPair::KeyName
+
+  VpcBlock:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: VPC CIDR Range
+
+  Subnet01Block:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: CidrBlock for subnet01 within the VPC.
+
+Resources:
+
+  VPCStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: copy URL
+      Parameters:
+        VPCBlock: !Ref VPCBlock
+        Subnet01Block: !Ref Subnet01Block
+    TimeOutInMinutes: 5
+
+  SecurityGroup:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: http://s3.
+      Parameters:
+        VPCId: !GetAtt VPcStack.Outputs.VpcId
+      TimeOutInMinutes:
+
+  MyVMInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-sdjfsdje
+      InstanceType: t2.micro
+      KeyName: !MyKeyName
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          SubnetId:!GetAtt VPCStack.outputs.Subnet01Id
+          GroupSet:
+            - !GetAtt SecurityGroupStack.outputs.DevSGGroupId
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+
+
+Outputs:
+  AppURL: 
+    Description: Application URL to access
+    Value: !Sub http://
+
+
+***** Nested security group stack-Demo
+
+***** Update Nested security group stack with new inbound security group
+
+Highly recommended approach
+- Always perform updates from Root stack
+- Never update nested stacks directly
+
+For Nested stack updates
+- Updates SG nested stack with new security rule
+- Upload the new template to s3
+- Update root stack with existing template.
+
+***** Delete Nested stacks
+- Always delete root stacks
+- Never delete nested stacks

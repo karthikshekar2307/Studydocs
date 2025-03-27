@@ -1,0 +1,37 @@
+**** Print Function
+print("Hello world!")
+- What this does is using the keyword print and what to print in paranthesis
+
+Double quotes - tell computer between quotes are not code. They are call string
+
+
+***** Double quotes
+print("Day 1 - Python Print Function")
+print("The function is declared like this:")
+print("print('what to print')")
+
+use single quotes to use another set of code inside a statement - we cant use double quote inside double quote
+
+
+***** String manupulation and code intelligence
+- Usually if we needed to run statements, we need to use it few times on the code
+- we can use a method using single statement
+example:
+print("Hello world!\nHello world")
+
+\n - new line
+
+To concatenate
+print("Hello" + "Karthik") - the two strings are combined but no spaces
+to add a spaces
+print("Hello" + " " + "Karthik")
+We will notice indentation error if we insert a space before statement
+
+
+***** Input function
+example:
+input("What is your name")
+
+Using print function with input
+print("Hello" +  " " + input("What is your name") + "!") - here input function is nested inside print function
+

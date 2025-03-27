@@ -1,0 +1,114 @@
+***** EBS Overview
+Free Tier: 30GB of free EBS storage of type General Purpose (SSD) or magnetic per month
+
+***** EBS Volume types
+- EBS volumes come in 6 types
+gp2/gp3 (SSD): general purpose SSD volume that balances price and performance for wide variety of workloads
+io1/io2 (SSD): Highest-performance SSD volume for mission-critical low-latency or high-throughput workloads
+st1 (HDD): Low cost HDD volume designed for frequentluy accessed, throughput-intensive workloads
+sc1 (HDD): Lowest cost HDD volume designed for less frequently accessed workloads
+- EBS Volumes are characterized in size|Throughput|IOPS (I/O Ops per sec)
+- When in doubt always consult the AWS documentation - Its good
+- Only gp2/gp3 and io1/io2 can be used as boot volumes.
+
+(a) General purpose SSD
+- Cost effective storage, low-latency
+- System boot volumes, virtual desktops, Development and test environments
+- 1Gib - 16Tib
+- gp3
+Baseline of 3000 IOPS and throughput of 125 Mb/s
+Can increase IOPS up to 16000 and throughput up to 1000 Mb/s independently
+- gp2
+Small gp2 volumes can burst IOPS to 3000
+Size of the volume and IOPS are linked, max IOPS is 16000
+3 IOPS per GB, means at 5333GB we are at the max IOPS
+
+(b) Provisioned IOPS (PIOPS) SSD
+- Critical business applications with sustained IOPS performance
+- Or applications that need more than 16000 IOPS
+- Great for database workloads (sensitive to storage perf and consistency)
+- io1/io2 (4GiB - 16Tib)
+Max PIOPS:64000 for Nitro EC2 instances and 32000 for other
+can increase PIOPS independently from storage size
+io2 have more durability and more IOPS per GiB (at the same price as io1)
+- io2 block express (4Gib - 64Tib)
+sub-millisecond latency
+Max PIOPS:256000 with an IOPS:GiB ratio of 1000:1
+- Supports EBS Multi-attach
+
+(c) Hard disk drives (HDD)
+- Cannot be a boot volume
+- 125 Gib to 16Tib
+- Throughput optimized HDD (st1)
+Big data, data warehouses, Log processing
+Max throughput 500 Mib/s - max IOPS 500
+- Cold HDD (sc1):
+For data that is infrequently accessed
+Scenarios where lowest cost is important
+Max throughput 250Mib/s - max IOPS 250
+
+
+***** EBS Multi-attach
+- Attach the same EBS volume to multiple EC2 instances in same AZ
+- Each instance has full read and write permissions to high-performance volume
+- Use-case:
+Archieve higher application availability in clustered linux application (example: terradata)
+applications must manage concurrent write operations
+- Up to 16 EC2 instances at a time
+- Must use a filesystem that's cluster-aware (Not XFS, EXT4, etc.)
+
+
+***** EBS Encryption
+- When you create an encrypted EBS volume, you get the following:
+Data at rest is encrypted inside the volume
+All the data in flight moving between the instancce and the volume us encrypted.
+All snapshots are encrypted
+All volumes created from snapshots
+- Encryption and decryption are handled transperantly (you have nothing to do)
+- Encryption has a minimal impact on latency
+- EBS encryption leverages keys from KMS (AES-256)
+- Copying an unencrypted snapshots allows encryption
+- Snapshots of encrypted volumes are encrypted
+
+
+**** EFS
+- Managed NFS (Network file system) that can be mounted on many EC2
+- EFS works with EC2 instances in multi-AZ
+- Highly available, scalable, expensive (3 * gp2), pay per use
+- Use cases:
+Content management, web serving, data sharing, wordpress
+- Uses NFSv4.1 protocol
+- Uses security group to control access to EFS
+- Compatible with Linux based AMI (not windows)
+- Encryption at rest using KMS
+- POSIX file system (~Linux) that has a standard file application
+- Filesystem scales automatically, pay per use, no capacity
+
+- Storage classes
+(a) EFS scale
+- 1000s of concurrent NFS clients, 10GB+/s throughput
+- Grow to perabyte-scale network file system, automatically
+
+(b) Performance Mode (set at EFS creation time)
+- Generalpurpose (default) - latency sensitive use cases (web server, CMS)
+- Max IO - higher latency, throughput, highly parallel (big data, media processing)
+
+(c) Throughput Mode
+- Bursting - 1TB=50MiB/s + burst up to 100MB/s
+- provisioned - set your throughput regardless of storage size
+- Elastic - automatically scales throughput up or down based on your workloads
+Up to 3Gb/s for reads and 1Gb/s for writes
+
+Storage tiers (Lifecycle management feature - move file after N days)
+- Standard: for frequently accessed filesystem
+- Infrequently access (EFS-IA): cost to retrieve files, lower price to store. 
+enable EFS-IA with a lifecycle policy
+
+Availability and durability
+- Standard: Multi-AZ, great for Prod.
+- One Zone: One AZ, great for dev, backup enabled by default, compatible with IA (EFS one Zone-IA)
+
+- Over 90% in cost savings
+
+***** EFS vs EBS
+

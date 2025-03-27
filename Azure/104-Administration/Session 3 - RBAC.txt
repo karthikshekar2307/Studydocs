@@ -1,0 +1,27 @@
+***** RBAC
+- Azure RBAC is system that allows control over who has access to which azure resources, and what those people can
+do with those resources
+
+- Consists of three elements
+Who has access to Azure resources, security principle - An identity that gets the permissions. It could be user, group or a service principle
+What they can do with those resources - Role definition - A collection of permissions
+What is the scope of access - A way to constrain where those permissions are applicable
+
+- You can assign multiple roles to user account
+
+- you can create you own custom azure roles and assign custom permissions
+- You can assign roles using the Azure portal, Azure CLI, Azure powershell, Azure SDKs or REST applications
+
+
+****** Demo
+Reader - only view
+Contributor - Read and manager
+Owner - Read, manage and grant
+user access admin - manage user access
+
+Deny assignments
+- like windows deny permissions- blocks user from permrming specific actions even if a role assignments
+- can only be created using Azure Blur print or managed apps.
+
+
+***** Azure custom role

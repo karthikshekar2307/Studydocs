@@ -1,0 +1,63 @@
+Session 1 - Introduction
+-------------------------
+
+***** AWS CloudFormation
+- Template Anatomy
+(a) Resources
+(b) Parameters
+(c) Mappings
+(d) Conditions
+(e) Outputs
+(f) Metadata
+
+
+***** YAML Concepts
+- YAML Key-value pairs
+- YAML Lists
+- YAML Dictionary
+- YAML Lists containing dictionaries
+- YAML Lists containing dictionaries containing lists
+- YAML Pipe
+- YAML Greater than
+- YAML Comments
+
+1. YAML Key--value pairs
+- YAML documents will be full of key value pairs
+- Key and value are separated by colon
+- We must have a space after colon differntiating the value
+- YAML supports different data types
+   - Integer
+   - Floating point numbers
+   - Strings
+   - Boolean
+   - Date-Format: ISO 8601
+   - Null Values
+- Important note for strings: Quote strings when they have special characters like colons:, braces {}, pipes |, brackers[]
+
+2. YAML Lists
+- YAML Lists are intended with openin dash.
+- Dash indicates that its a element of an array.
+- All members of a list are lines beginning at the same indentation level starting with a "-" (dash and a space)
+- Block sequence indicate each entry with a dash and space
+- Flow sequence is written as a comma seperated list within square brackets
+
+3. YAML Dictionaries/Map
+- YAML Dictionaries are set of properties grouped together under an item.
+- YAML dictionaries contain key value pairs
+
+4. YAML list containing dictionaries
+
+5. YAML Lists containing dictionaries containing lists
+
+6. YAML Pipe (used as part of user-data section)
+- The pipe notation, also referred to as literal block
+- All new lines, indentation, extra spaces everything preserved as is
+
+7. YAML Greater than sign
+- The greater than sign notation, also referred to as folded block
+- Renders the text as a single line
+- All new lines will be replaced with a single space
+- Blank lines are converted to new line character
+
+8. YAML Comments
+- We can have comments in YAML with # sign. 

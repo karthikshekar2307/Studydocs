@@ -1,0 +1,71 @@
+Session 2 - Docker Fundamentals
+---------------------------------
+
+
+Architecture
+- Docker daemon
+- Docker client
+- Docker images
+- Docker containers
+- Docker registry or Docker hub
+
+# docker pull nginxdemos/hello
+# docker run -p 82:80 -d nginxdemos/hello
+
+***** Pull docker image and run
+- hub.docker.com
+# docker pull stacksimplify/dockerintro-springboot-helloworld-rest-api:1.0.0-RELEASE
+
+# docker run --name app1 -p 80:8080 -d stacksimplify/dockerintro-springboot-helloworld-rest-api:1.0.0-RELEASE
+
+- List runnign containers
+# docker ps
+# docker ps -a
+# docker ps -a -q - pass container ID to another command.
+
+- connect to container
+# docker exec -it app /bin/sh
+
+- stop-start container
+# docker stop app1
+# docker start app1
+
+- see stopped container
+# docker ps -a
+
+- remove container
+# docker rm app1
+
+- remove image
+# docker rmi <imageid>
+
+
+***** Docker - buld docker image locally
+Step-1: Run the base Nginx container
+
+# docker run --name mynginxdefault -p 80:80 -d nginx
+# docker ps
+# docker stop mynginxdefault
+
+Step-2: Create Dockerfile and copy our customized index.html
+Dockerfile
+FROM nginx
+COPY index.html /usr/share/nginx/html
+
+Step-3: Build Docker Image & run it
+# docker build -t stacksimplify/mynginx_image1:v1 .
+# docker run --name mynginx1 -p 80:80 -d stacksimplify/mynginx_image1:v1
+
+Replace your docker hub account Id
+# docker build -t <your-docker-hub-id>/mynginx_image1:v1 .
+# docker run --name mynginx1 -p 80:80 -d <your-docker-hub-id>/mynginx_image1:v1
+
+
+Step-4: Tag & push the Docker image to docker hub
+# docker images
+# docker tag stacksimplify/mynginx_image1:v1 stacksimplify/mynginx_image1:v1-release
+# docker push stacksimplify/mynginx_image1:v1-release
+
+Replace your docker hub account Id
+# docker tag <your-docker-hub-id>/mynginx_image1:v1 <your-docker-hub-id>/mynginx_image1:v1-release
+# docker push <your-docker-hub-id>/mynginx_image1:v1-release

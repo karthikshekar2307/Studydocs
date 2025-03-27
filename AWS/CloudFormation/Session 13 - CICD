@@ -1,0 +1,462 @@
+Session 13 - Continuous integration and Continuous delivery with CloudFormation
+--------------------------------------------------------------------------------
+
+***** Introduction to CICD
+
+Code Services in AWS
+- CodeCommit
+- CodeBuild
+- CodeDeploy
+- CodePipeline
+
+Stages in Software release process
+
+(a) Source 
+- Check-in source code
+- Peer review new code
+
+(b) Build
+- Compile code and build artifacts (war files)
+- Unit tests
+
+(c) Test
+- Integration tests with other systems
+- Load testing
+- UI Testing
+- Security tests
+
+(d) Production
+- Deployment to production environments
+- Monitor code in production to quickly detect errors
+
+
+Countinuous Integration
+- Source
+- Build
+
+Continous delivery (if completely automated - there is manual intervention before deployment to production)
+- Source
+- Build
+- Test
+- Production
+
+Continious deployment (if completely automated - there is no manual intervention before deployment to production)
+- Source
+- Build
+- Test
+- Production
+
+Infrastructure as code
+
+- Goal of CICD
+(a) Continuous integration
+- Automatically kick off a new release when new code is checked-in
+- Build and test code in a consistent, repeatable envionment.
+- Continually have an artifact ready for deployment.
+
+(b) Continuous delivery
+- Automatically deploy new changes to staging environment for testing
+- Deploy to production safely without affecting customers
+- Deliver to customers faster.
+- Increase deployment frequency, and reduce change lead time and change failure rate.
+
+- AWS Developer tools or code services
+(a) Source --> AWS CodeCommit
+(b) Build --> AWS CodeBuild
+(c) Test --> AWSCodeBuid + Third party
+(d) Deploy --> AWSCodeDeploy
+(e) Monitor --> AWS X-Ray and Amazon CloudWatch
+
+All this can be managed by single AWS code service called --> AWS CodePipeline.
+
+
+(a) Source --> AWS CodeCommit
+- Version control service
+- We can privately store and manage source code
+- Secure and highly available.
+
+
+(b) Build --> AWS CodeBuild
+- Fully managed build service, compiles source cide, run tests and produces software packages
+- Scales continuously and processes multiple builds concurrently.
+- No Build servers to mange.
+- Pay by minute only for compute resources we use.
+- Monitor builds through Cloudwatch events
+- supports following programmng language runtimes - Ruby, Python, PHP, PHP, Node, Java, Golang, NetCore, Docker and Android.
+
+
+(c) Deploy --> AWS CodeDeploy
+- Automates code deployments to any instance and lambda
+- Avoids downtime during application deployment
+- Rollback automatically if failure detected
+- Deploy to Amazon EC2, Lambda or on-premises servers
+
+
+(d) Monitor --> AWS X-Ray and CloudWatch
+- Monitors source checkins and triggers builds
+- Monitor builds
+- Monitors Infrastructure
+- Collects logs
+
+(e) CodePipeline
+- Continuous delivery sevice for fast and reliable application updates
+- Model and visualize your softwae release process
+- Builds, tests, and deploys your code every time there is a code change
+- Integrates with third-party tools and AWS.
+
+
+***** Introduction to EC2 Apps stack
+
+Step 1 - Create security group with port 22 and 8080 rules for inbound acces
+
+Step 2 - Create two EC2 instances
+- Staging
+- Production 
+- Update UserData
+
+Step 3 - Create Instance profile role and instance profile for EC2 instances to access S3 buckets
+
+Step 4 - Create Stack and verify
+
+
+***** EC2 apps stack - Create Security group
+
+vi CFN-EC2-Instance.yaml
+AWSTemplateFormatVersion: 2010-09-09
+Description: EC2 instance with instance profile role to access S3 buckets
+
+Resources:
+
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with Port 22 and 8080 inbound
+      SecurityFroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIp: 0.0.0.0/0
+
+
+ ***** EC2 apps stack - Create VM Instances, Parameters and outputs
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: EC2 instance with instance profile role to access S3 buckets
+
+Parameters:
+  KeyName:
+    Description: Key name to SSH to VM's
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with Port 22 and 8080 inbound
+      SecurityFroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIp: 0.0.0.0/0
+
+  MyStageVMInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0263789021
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      SecurityGroups:
+        - !Ref MySecurityGroup
+      IamInstanceProfile: 
+      Tags:
+        - Key: Name
+          Value: dev
+        - Key: Environment
+          Value: stage
+      UserData:
+        Fn::Base4: |
+           #!/bin/bash
+           sudo yum update
+           sudo yum install ruby
+           sudo yum install wget
+           sudo yum -y erase java-1.7.0-openjdk.x86_64
+           sudo yum install java-1.8.0-openjdk.x86_64
+           sudo yum install java-1.7.0-openjdk-devel
+           sudo yum install -y tomcat8
+           cd /home/ec2-user
+           wget https://aws-codedeploy-us-east-2.s3.amazonaws.com/latest/install
+           chmod +x ./install
+           sudo ./install auto
+
+  MyProdVMInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0263789021
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      SecurityGroups:
+        - !Ref MySecurityGroup
+      IamInstanceProfile: 
+      Tags:
+        - Key: Name
+          Value: Prod
+        - Key: Environment
+          Value: Production
+      UserData:
+        Fn::Base4: |
+           #!/bin/bash
+           sudo yum update
+           sudo yum install ruby
+           sudo yum install wget
+           sudo yum -y erase java-1.7.0-openjdk.x86_64
+           sudo yum install java-1.8.0-openjdk.x86_64
+           sudo yum install java-1.7.0-openjdk-devel
+           sudo yum install -y tomcat8
+           cd /home/ec2-user
+           wget https://aws-codedeploy-us-east-2.s3.amazonaws.com/latest/install
+           chmod +x ./install
+           sudo ./install auto
+
+
+Outputs:
+  StageAppURL:
+    Description: Staging application access URL
+    Value: !Sub 'http://${MyStageVMInstance.PublicDnsName}:8080/ccdemo/hello'
+  ProdAppURL:
+    Description: Production application access URL
+    Value: !Sub 'http://${MyProdVMInstance.PublicDnsName}:8080/ccdemo/hello'
+
+
+*****EC2 apps stack - Create Instance profile role and instance profile
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: EC2 instance with instance profile role to access S3 buckets
+
+Parameters:
+  KeyName:
+    Description: Key name to SSH to VM's
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+
+  MyCICDEC2InstanceProfileRole:
+    Type: 'AWS::IAM::Role'
+    Poperties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: MyCICDEC2InstanceProfilePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:Get*'
+                  - 's3:List*'
+                Resources: '*'
+
+  MyInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - MyCICDEC2InstanceProfileRole
+
+
+  MySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: My SG with Port 22 and 8080 inbound
+      SecurityFroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIp: 0.0.0.0/0
+
+  MyStageVMInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0263789021
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      SecurityGroups:
+        - !Ref MySecurityGroup
+      IamInstanceProfile: !Ref MyInstanceProfile
+      Tags:
+        - Key: Name
+          Value: dev
+        - Key: Environment
+          Value: stage
+      UserData:
+        Fn::Base4: |
+           #!/bin/bash
+           sudo yum update
+           sudo yum install ruby
+           sudo yum install wget
+           sudo yum -y erase java-1.7.0-openjdk.x86_64
+           sudo yum install java-1.8.0-openjdk.x86_64
+           sudo yum install java-1.7.0-openjdk-devel
+           sudo yum install -y tomcat8
+           cd /home/ec2-user
+           wget https://aws-codedeploy-us-east-2.s3.amazonaws.com/latest/install
+           chmod +x ./install
+           sudo ./install auto
+
+  MyProdVMInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0263789021
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      SecurityGroups:
+        - !Ref MySecurityGroup
+      IamInstanceProfile: !Ref MyInstanceProfile 
+      Tags:
+        - Key: Name
+          Value: Prod
+        - Key: Environment
+          Value: Production
+      UserData:
+        Fn::Base4: |
+           #!/bin/bash
+           sudo yum update
+           sudo yum install ruby
+           sudo yum install wget
+           sudo yum -y erase java-1.7.0-openjdk.x86_64
+           sudo yum install java-1.8.0-openjdk.x86_64
+           sudo yum install java-1.7.0-openjdk-devel
+           sudo yum install -y tomcat8
+           cd /home/ec2-user
+           wget https://aws-codedeploy-us-east-2.s3.amazonaws.com/latest/install
+           chmod +x ./install
+           sudo ./install auto
+
+
+Outputs:
+  StageAppURL:
+    Description: Staging application access URL
+    Value: !Sub 'http://${MyStageVMInstance.PublicDnsName}:8080/ccdemo/hello'
+  ProdAppURL:
+    Description: Production application access URL
+    Value: !Sub 'http://${MyProdVMInstance.PublicDnsName}:8080/ccdemo/hello'
+
+
+
+*****EC2 apps stack - create stack and verify
+
+
+***** CodeCommit - Introduction
+
+- Version Control service hosted by AWS
+- We can privately store and manage documents, source code, and binary files
+- Secure and highly scalable
+- Supports standard functionality cf git (CodeCommit supports git versions 1.7.9 and later)
+- Uses a static user name and password in addition to standard SSH.
+
+Steps:
+1. Sample spring boot rest application
+   - Pre-requisites
+      - Install STS IDE
+   - Create Spring boot rest application
+   - Test it.
+2. Git Repository
+   - Create a local git repository and check in code.
+   - Create a remote git repository in AWS CodeCommit
+   - Create code commit git credentials to connect
+   - Push the code to remote git repository
+   - Verify code in AWS CodeCommit
+3. CodeCommit Features
+   - Code, Commits, Branches
+   - Settings: Notifications, triggers
+   - Pull requests
+
+
+***** CodeCommit - Create a simple rest application
+1. Sample spring boot rest application
+   - Pre-requisites
+      - Install STS IDE
+   - Create Spring boot rest application
+   - Test it.
+
+- Download spring tools 4 Ide
+
+
+***** CodeCommit - Create repo in CodeCommit and check-in code
+
+-  Git Repository
+   - Create a local git repository and check in code.
+   - Create a remote git repository in AWS CodeCommit
+   - Create code commit git credentials to connect
+   - Push the code to remote git repository
+   - Verify code in AWS CodeCommit
+
+
+***** CodeCommit - Additional CodeCommit features
+
+
+***** Introduction to CodeBuild with AWS web console and CloudFormation
+
+
+***** AWS CodeBuild - Introduction
+
+- CodeBuild is a fully managed build service in the cloud
+- Compiles your source code, runs unit tests, and produces arifacts that are ready to deploy.
+- Eliminates the need to provision, manage and scale your own build servers
+- It provides prepackaged build environments for the most popular programming languages and build tools such as Apache Maven, gradle and more.
+- We can also customize build environments in CodeBuild to use our own build tools.
+- Scales automatically to meet peak build requests.
+
+How to run CodeBuild
+- AWS Management console
+- AWS CLI
+- AWS SDKs
+- AWS CodePipeline
+
+When we create a CodeBuild projects we also create or it creates a build environment.
+
+Build envronment is nothing but a docker container, it can be either using AWS managed container image or image thats from user created repository.
+
+it downloads source code from Code commit repository and it will start building using "buildspec.yaml" that we have provided as an input.
+
+In "buildspec.yaml", we provide the list of commands that we use during build process (pre-build and post build process).
+
+Once the build process is complete, it will upload artifacts to S3, it also notifies if we have set-up SNS.
+
+Logs will be sent to Cloudwatch logs.
+
+CodeBuild - Steps
+Step 1: Create CodeBuild project
+  - Create S3 bucket and folder
+  - Create CodeBuild project
+Step 2 : Start Build
+  - Start build
+  - Verify build logs
+  - Verify build phase details
+  - Download the artifacts from S3, unzip and review
+  - Run one more build and see versioning in S3
+Step 3 : Create Build notifications
+  - Create state change notification
+  - Create phase change notification
+
+
+***** CodeBuild - Create Project

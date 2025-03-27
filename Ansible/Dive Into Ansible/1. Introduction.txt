@@ -1,0 +1,128 @@
+***** Ansible Core components
+- Modules
+- Ansible executable
+- Ansible playbook
+- Ansible Inventories
+
+***** Ansible configuration - can make use of config file.
+- Priority of configuration preference
+1. /etc/ansible/ansible.config
+2. ~/.ansible.cfg
+3. ./ansible.cfg
+4. ANSIBLE_CONFIG - variable
+
+***** Ansible Inventories
+To provide an environment variable for a single command only
+# ANSIBLE_HOST_KEY_CHECKING=False ansible all -m ping
+
+To perform this on ansible config
+cat ansible.cfg
+[defaults]
+inventory = hosts
+host_key_checking = False
+
+To allow ansible to run on all hosts in all groups
+cat hosts
+[centos]
+centos1
+centos2
+centos3
+
+[ubuntu]
+ubuntu1
+ubuntu2
+ubuntu3
+
+# ansable all -m ping
+
+To only run on specific group
+# ansible centos -m ping
+
+# ansible '*' -m ping
+
+# ansible all -m ping -o -> to get condensed view
+
+# ansible centos --list-hosts
+
+# ansible all --list-hosts
+
+# ansible centos1  --list-hosts
+
+# ansible centos01 -m ping -o
+
+# ansible ~.*3 --list-hosts
+
+ansible@toolserver:~/git_repo/diveintoansible/Ansible Architecture and Design/Inventories/04$ cat hosts
+[centos]
+centos1 ansible_user=root
+centos2 ansible_user=root
+centos3 ansible_user=root
+- to use root credentials
+
+# ansible all -m ping -o
+
+Way to check the user used by ansible. USing ansible command module - # ansible all -m command -a 'id' -o
+
+[ubuntu]
+ubuntu1 ansible_become=true ansible_become_pass=password
+ubuntu2 ansible_become=true ansible_become_pass=password
+ubuntu3 ansible_become=true ansible_become_pass=password
+- use ansible username and password
+
+# ansible all -a 'id' -o
+
+
+[centos]
+centos1 ansible_user=root ansible_port=2222
+centos2 ansible_user=root
+centos3 ansible_user=root
+- Particular port for ansible to use
+another variation
+[centos]
+centos1:2222 ansible_user=root
+centos2 ansible_user=root
+centos3 ansible_user=root
+
+--------
+ansible@toolserver:~/git_repo/diveintoansible/Ansible Architecture and Design/Inventories$ cat 09/hosts
+[control]
+ubuntu-c ansible_connection=local
+
+[centos]
+centos1 ansible_user=root ansible_port=2222
+centos[2:3] ansible_user=root
+
+[ubuntu]
+ubuntu[1:3] ansible_become=true ansible_become_pass=password
+--------------
+
+***** Ansible modules
+- Setup module - to gather useful information on remote hosts
+# ansible centos1 -m setup
+
+- file module - to create files (touch/file)
+# ansible all -m file -a 'path=/tmp/file' state=touch
+- Colors - to choose color schemes
+# ansible all -m file -a 'path=/tmp/file' state=touch
+Another variation with file
+# ansible all -m file -a 'path=/tmp/test state=file mode=600'
+
+- Idempotency: An operation is idempotent, if the result of performing it once, is exactly the same as the result of performing it repeatedly without any intervening actions.
+
+- Copy: copy from source to destination
+# touch .tmp/x
+# ansible all -m copy -a 'src=/tmp/x dest=/tmp/x'
+
+- Command module - is not processed through shell
+# ansible all -a 'hostname' -o
+# ansible all -a 'touch /tmp/test_command_module creates=/tmp/test_command_module'
+
+# ansible all -a 'rm /tmp/test_command_module removes=/tmp/test_command_module' - Works only if file exists
+
+- Fetch module
+# ansible all -m file -a 'path=/tmp/test_modules.txt state=touch mode=600' -o
+# ansible all -m fetch -a 'src=/tmp/test_module.txt dest=/tmp/' -o
+
+ansible-doc
+
+

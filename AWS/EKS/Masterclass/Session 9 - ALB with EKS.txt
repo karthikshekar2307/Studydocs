@@ -1,0 +1,771 @@
+***** ALB
+features:
+- support Path based routinh
+- Support host based routing
+- Support routing based on fields in the request (HTTP headers, methods, Query paramaeters and Source IP address)
+- redirecting requests
+- returning custom HTTP response
+- Registering lambda functions
+
+ALB Ingress controller
+- Triggers creation of ALB and the necessary supporting AWS resources whenever an ingress resource is created on the cluster with kubernetes.io.ingress.class:alb annotations
+- The ALB ingress controller supports two traffic modes
+Instance
+IP
+
+
+****** ALB Install Ingress Controller
+
+Ingress manifest - Key items
+Ingress annotations: Load balancer Settings
+Ingress spec/Ingress class name: Which ingress controller to use
+Ingress spec: Define ingress routing riles, default backend.
+
+
+Step-01: Introduction
+Create k8s rbac role & Service Account for ALB Ingress Controller, for that we will create three objects in k8s. Refer file ALBIngress-rbac-roles.yml for more details.
+ClusterRole
+ServiceAccount
+ClusterRoleBinding
+Create IAM Policy with access to AWS Services (EC2, ELB, IAM, Cognito, WAF, Shield, Certificate Manager etc - All AWS Services in relation with AWS Application Load Balancer)
+Associate the k8s service account, AWS IAM Policy by creating a AWS IAM Role
+Finally deploy ALB Ingress Controller and Test if that respective POD is finally running
+
+
+Step-02: Create a Kubernetes service account named alb-ingress-controller in the kube-system namespace
+We are using master branch instead of v1.1.4
+# List Service Accounts
+kubectl get sa -n kube-system
+
+# Create ClusterRole, ClusterRoleBinding & ServiceAccount
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/master/docs/examples/rbac-role.yaml
+
+# List Service Accounts
+kubectl get sa -n kube-system
+
+# Describe Service Account alb-ingress-controller 
+kubectl describe sa alb-ingress-controller -n kube-system
+Output
+Kalyans-MacBook-Pro:aws-fargate-eks-masterclass kdaida$ kubectl describe sa alb-ingress-controller -n kube-system
+Name:                alb-ingress-controller
+Namespace:           kube-system
+Labels:              app.kubernetes.io/name=alb-ingress-controller
+Annotations:         kubectl.kubernetes.io/last-applied-configuration:
+                       {"apiVersion":"v1","kind":"ServiceAccount","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"alb-ingress-controller"},"name...
+Image pull secrets:  <none>
+Mountable secrets:   alb-ingress-controller-token-rs8c6
+Tokens:              alb-ingress-controller-token-rs8c6
+Events:              <none>
+
+Step-03: Create IAM Policy for ALB Ingress Controller
+Create IAM Policy
+Why this policy: This IAM policy will allow our ALB Ingress Controller pod to make calls to AWS APIs
+ISSUE: With iam-policy.json aws provided we have an issue, so created manually using AWS Management Console.
+IAM Policy Creation: Create manually using AWS management console and give full access to ELB
+Go to Services -> IAM -> Policies -> Create Policy
+Click on JSON tab and paste the content from https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/master/docs/examples/iam-policy.json
+Come back to Visual Editor
+Add ELB full access
+Click on Add Additional Permissions
+Service: ELB
+Actions: All ELB actions (elasticloadbalancing:*)
+Resources: All Resources
+Remove ELB which has warnings
+Click on Remove
+Click on Review Policy
+Name: ALBIngressControllerIAMPolicy
+Description: This IAM policy will allow our ALB Ingress Controller pod to make calls to AWS APIs
+Click on Create Policy
+# NOT WORKING AS ON TODAY DUE TO ERRORS IN iam-policy.json 
+# Create IAM Policy
+aws iam create-policy \
+    --policy-name ALBIngressControllerIAMPolicy \
+    --policy-document https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/master/docs/examples/iam-policy.json
+Make a note of Policy ARN
+Make a note of Policy ARN as we are going to use that in next step when creating IAM Role.
+Policy ARN:  arn:aws:iam::180789647333:policy/ALBIngressControllerIAMPolicy
+
+
+Step-04: Create an IAM role for the ALB Ingress Controller and attach the role to the service account
+Applicable only with eksctl managed clusters
+This command will create an AWS IAM role and bounds that to Kubernetes service account
+# Template
+eksctl create iamserviceaccount \
+    --region region-code \
+    --name alb-ingress-controller \  #Note:  K8S Service Account Name that need to be bound to newly created IAM Role
+    --namespace kube-system \
+    --cluster prod \
+    --attach-policy-arn arn:aws:iam::111122223333:policy/ALBIngressControllerIAMPolicy \
+    --override-existing-serviceaccounts \
+    --approve
+
+# Replaced region, name, cluster and policy arn (Policy arn we took note in step-03)
+eksctl create iamserviceaccount \
+    --region us-east-1 \
+    --name alb-ingress-controller \
+    --namespace kube-system \
+    --cluster eksdemo1 \
+    --attach-policy-arn arn:aws:iam::180789647333:policy/ALBIngressControllerIAMPolicy \
+    --override-existing-serviceaccounts \
+    --approve
+Verify using eksctl cli
+# Get IAM Service Account
+eksctl  get iamserviceaccount --cluster eksdemo1
+Verify CloudFormation Template eksctl created & IAM Role
+Goto Services -> CloudFormation
+CFN Template Name: eksctl-eksdemo1-addon-iamserviceaccount-kube-system-alb-ingress-controller
+Click on Resources tab
+Click on link in Physical Id to open the IAM Role
+Verify it has ALBIngressControllerIAMPolicy associated
+Verify k8s Service Account
+# Describe Service Account alb-ingress-controller 
+kubectl describe sa alb-ingress-controller -n kube-system
+Observation: You can see that newly created Role ARN is added in Annotations confirming that AWS IAM role bound to a Kubernetes service account
+Output
+Kalyans-MacBook-Pro:aws-fargate-eks-masterclass kdaida$ kubectl describe sa alb-ingress-controller -n kube-system
+Name:                alb-ingress-controller
+Namespace:           kube-system
+Labels:              app.kubernetes.io/name=alb-ingress-controller
+Annotations:         eks.amazonaws.com/role-arn: arn:aws:iam::180789647333:role/eksctl-eksdemo1-addon-iamserviceaccount-kube-Role1-1Y1T391CKSSR1
+                     kubectl.kubernetes.io/last-applied-configuration:
+                       {"apiVersion":"v1","kind":"ServiceAccount","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"alb-ingress-controller"},"name...
+Image pull secrets:  <none>
+Mountable secrets:   alb-ingress-controller-token-rs8c6
+Tokens:              alb-ingress-controller-token-rs8c6
+Events:              <none>
+
+Step-05: Deploy ALB Ingress Controller
+We are using Master branch file instead of 1.1.4, so that we can use latest ALB Ingress Controller
+# Deploy ALB Ingress Controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/aws-alb-ingress-controller/master/docs/examples/alb-ingress-controller.yaml
+
+# Verify Deployment
+kubectl get deploy -n kube-system
+
+Step-06: Edit ALB Ingress Controller Manifest
+Edit ALB Ingress Controller manifest and add clustername field - --cluster-name=eksdemo1
+# Edit Deployment
+kubectl edit deployment.apps/alb-ingress-controller -n kube-system
+
+# Template file  
+    spec:
+      containers:
+      - args:
+        - --ingress-class=alb
+        - --cluster-name=cluster-name
+
+# Replaced cluster-name with our cluster-name eksdemo1
+    spec:
+      containers:
+      - args:
+        - --ingress-class=alb
+        - --cluster-name=eksdemo1
+
+Step-07: Verify our ALB Ingress Controller is running.
+Verify for the pod starting with alb-ingress-controller
+We will know if all our above steps are working or not in our next section 08-02-ALB-Ingress-Basic, if ALB not created then we something is wrong.
+# Verify if alb-ingress-controller pod is running
+kubectl get pods -n kube-system
+
+# Verify logs
+kubectl logs -f $(kubectl get po -n kube-system | egrep -o 'alb-ingress-controller-[A-Za-z0-9-]+') -n kube-system
+
+
+*****  AWS ALB Ingress Controller - Basics
+
+Step-01: Introduction
+Discuss about the Application Architecture which we are going to deploy
+
+Step-02: Foundation Section
+Create ALB Manually for additional understanding
+Create a simple Application Load Balancer and understand the following
+Application Load Balancer Core Concepts
+ALB should be Internet facing or Internal
+Listeners (Default HTTP 80)
+Rules (HTTP /*)
+Target Groups
+Targets (Backends)
+HealthCheck Settings
+Protocol: HTTP
+Traffic Port (8095)
+Health Check Path: /usermgmt/health-status
+Success Codes: 200
+Health check many other settins
+Delete the Load Balancer
+Understand about ALB Ingress Annotations
+Understand about ALB Ingress Annotations.
+Reference: https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/ingress/annotation/
+
+Step-03: Create ALB kubernetes basic Ingress Manifest
+Create a basic ALB Ingress template.
+05-ALB-Ingress-Basic.yml
+# Annotations Reference:  https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/ingress/annotation/
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-usermgmt-restapp-service
+  labels:
+    app: usermgmt-restapp
+  annotations:
+    # Ingress Core Settings
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    # Health Check Settings
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP 
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-path: /usermgmt/health-status
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/success-codes: '200'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /*
+            backend:
+              serviceName: usermgmt-restapp-nodeport-service
+              servicePort: 8095
+
+
+Step-04: Deploy Application with ALB Ingress Template included
+# Deploy Application with ALB Template
+kubectl apply -f kube-manifests/
+
+# Verify our UMS App is UP and Running
+kubectl get pods
+kubectl logs -f <pod-name>
+kubectl logs -f usermgmt-microservice-5c89458797-xsb64 
+
+# Get List of Ingress  (Make a note of Address field)
+kubectl get ingress
+
+# List Services
+kubectl get svc
+
+# Describe Ingress Controller
+kubectl describe ingress ingress-usermgmt-restapp-service 
+
+# Verify ALB Ingress Controller logs
+kubectl logs -f $(kubectl get po -n kube-system | egrep -o 'alb-ingress-controller-[A-Za-z0-9-]+') -n kube-system
+We should not see anything like below log in ALB Ingress Controller log, if we see we did something wrong with ALB Ingress Controleer deployment primarily in creating IAM Policy, Service Account & Role and Associating Role to Service Account.
+07:28:39.900001       1 controller.go:217] kubebuilder/controller "msg"="Reconciler error" "error"="failed to build LoadBalancer configuration due to unable to fetch subnets. Error: WebIdentityErr: failed to retrieve credentials\ncaused by: AccessDenied: Not authorized to perform sts:AssumeRoleWithWebIdentity\n\tstatus code: 403, request id: 3d54741a-4b85-4025-ad11-73d4a3661d09"  "controller"="alb-ingress-controller" "request"={"Namespace":"default","Name":"ingress-usermgmt-restapp-service"}
+VERY VERY IMPORTANT NOTE: Additionally if you see any errors as below, please go to VPC -> EKS VPC -> Subnets -> For both Public Subnets, add the tag as kubernetes.io/cluster/eksdemo1 =  shared
+E0507 15:40:13.134304       1 controller.go:217] kubebuilder/controller "msg"="Reconciler error" "error"="failed to build LoadBalancer configuration due to failed to resolve 2 qualified subnet with at least 8 free IP Addresses for ALB. Subnets must contains these tags: 'kubernetes.io/cluster/eksdemo1': ['shared' or 'owned'] and 'kubernetes.io/role/elb': ['' or '1']. See https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/controller/config/#subnet-auto-discovery for more details. Resolved qualified subnets: '[]'"  "controller"="alb-ingress-controller" "request"={"Namespace":"default","Name":"ingress-usermgmt-restapp-service"}
+
+
+Step-05: Verify the ALB in AWS Management Console & Access Application using ALB DNS URL
+Verify Load Balancer
+In Listeners Tab, click on View/Edit Rules under Rules
+Verify Target Groups
+GroupD Details
+Targets: Ensure they are healthy
+Access Application
+http://<ALB-DNS-URL>/usermgmt/health-status
+
+Step-06: Clean Up
+kubectl delete -f kube-manifests/
+
+
+***** AWS ALB Ingress Controller - Basics
+Step-01: Introduction
+Discuss about the Application Architecture which we are going to deploy
+
+Step-02: Foundation Section
+Create ALB Manually for additional understanding
+Create a simple Application Load Balancer and understand the following
+Application Load Balancer Core Concepts
+ALB should be Internet facing or Internal
+Listeners (Default HTTP 80)
+Rules (HTTP /*)
+Target Groups
+Targets (Backends)
+HealthCheck Settings
+Protocol: HTTP
+Traffic Port (8095)
+Health Check Path: /usermgmt/health-status
+Success Codes: 200
+Health check many other settins
+Delete the Load Balancer
+
+Understand about ALB Ingress Annotations
+Understand about ALB Ingress Annotations.
+Reference: https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/ingress/annotation/
+
+Step-03: Create ALB kubernetes basic Ingress Manifest
+Create a basic ALB Ingress template.
+05-ALB-Ingress-Basic.yml
+# Annotations Reference:  https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/ingress/annotation/
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-usermgmt-restapp-service
+  labels:
+    app: usermgmt-restapp
+  annotations:
+    # Ingress Core Settings
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    # Health Check Settings
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP 
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-path: /usermgmt/health-status
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/success-codes: '200'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /*
+            backend:
+              serviceName: usermgmt-restapp-nodeport-service
+              servicePort: 8095
+
+Step-04: Deploy Application with ALB Ingress Template included
+# Deploy Application with ALB Template
+kubectl apply -f kube-manifests/
+
+# Verify our UMS App is UP and Running
+kubectl get pods
+kubectl logs -f <pod-name>
+kubectl logs -f usermgmt-microservice-5c89458797-xsb64 
+
+# Get List of Ingress  (Make a note of Address field)
+kubectl get ingress
+
+# List Services
+kubectl get svc
+
+# Describe Ingress Controller
+kubectl describe ingress ingress-usermgmt-restapp-service 
+
+# Verify ALB Ingress Controller logs
+kubectl logs -f $(kubectl get po -n kube-system | egrep -o 'alb-ingress-controller-[A-Za-z0-9-]+') -n kube-system
+We should not see anything like below log in ALB Ingress Controller log, if we see we did something wrong with ALB Ingress Controleer deployment primarily in creating IAM Policy, Service Account & Role and Associating Role to Service Account.
+07:28:39.900001       1 controller.go:217] kubebuilder/controller "msg"="Reconciler error" "error"="failed to build LoadBalancer configuration due to unable to fetch subnets. Error: WebIdentityErr: failed to retrieve credentials\ncaused by: AccessDenied: Not authorized to perform sts:AssumeRoleWithWebIdentity\n\tstatus code: 403, request id: 3d54741a-4b85-4025-ad11-73d4a3661d09"  "controller"="alb-ingress-controller" "request"={"Namespace":"default","Name":"ingress-usermgmt-restapp-service"}
+VERY VERY IMPORTANT NOTE: Additionally if you see any errors as below, please go to VPC -> EKS VPC -> Subnets -> For both Public Subnets, add the tag as kubernetes.io/cluster/eksdemo1 =  shared
+E0507 15:40:13.134304       1 controller.go:217] kubebuilder/controller "msg"="Reconciler error" "error"="failed to build LoadBalancer configuration due to failed to resolve 2 qualified subnet with at least 8 free IP Addresses for ALB. Subnets must contains these tags: 'kubernetes.io/cluster/eksdemo1': ['shared' or 'owned'] and 'kubernetes.io/role/elb': ['' or '1']. See https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/controller/config/#subnet-auto-discovery for more details. Resolved qualified subnets: '[]'"  "controller"="alb-ingress-controller" "request"={"Namespace":"default","Name":"ingress-usermgmt-restapp-service"}
+
+
+Step-05: Verify the ALB in AWS Management Console & Access Application using ALB DNS URL
+Verify Load Balancer
+In Listeners Tab, click on View/Edit Rules under Rules
+Verify Target Groups
+GroupD Details
+Targets: Ensure they are healthy
+Access Application
+http://<ALB-DNS-URL>/usermgmt/health-status
+Step-06: Clean Up
+kubectl delete -f kube-manifests/
+
+
+***** AWS ALB Ingress Controller - Context Path Based Routing
+Step-01: Introduction
+Discuss about the Architecture we are going to build as part of this Section
+We are going to create two more apps with static pages in addition to UMS.
+App1 with context as /app1 - Simple Nginx custom built image
+App2 with context as /app2 - Simple Nginx custom built image
+We are going to deploy all these 3 apps in kubernetes with context path based routing enabled in Ingress Controller
+/app1/* - should go to app1-nginx-nodeport-service
+/app2/* - should go to app1-nginx-nodeport-service
+/* - should go to sermgmt-restapp-nodeport-service
+As part of this process, this respective annotation alb.ingress.kubernetes.io/healthcheck-path: /usermgmt/health-status will be moved to respective application NodePort Service. Only generic settings will be present in Ingress manifest annotations area 07-ALB-Ingress-ContextPath-Based-Routing.yml
+
+Step-02: Create Nginx App1 & App2 Deployment & Service
+App1 Nginx: 05-Nginx-App1-Deployment-and-NodePortService.yml
+App2 Nginx: 06-Nginx-App2-Deployment-and-NodePortService.yml
+
+Step-03: Update Health Check Path Annotation in User Management Node Port Service
+Health check path annotation should be moved to respective node port services if we have to route to multiple targets using single load balancer.
+04-UserManagement-NodePort-Service.yml
+#Important Note:  Need to add health check path annotations in service level if we are planning to use multiple targets in a load balancer  
+    alb.ingress.kubernetes.io/healthcheck-path: /usermgmt/health-status  
+
+Step-04: Create ALB Ingress Context path based Routing Kubernetes manifest
+07-ALB-Ingress-ContextPath-Based-Routing.yml
+# Annotations Reference:  https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/ingress/annotation/
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-usermgmt-restapp-service
+  labels:
+    app: usermgmt-restapp
+  annotations:
+    # Ingress Core Settings
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    # Health Check Settings
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP 
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+#Important Note:  Need to add health check path annotations in service level if we are planning to use multiple targets in a load balancer    
+    #alb.ingress.kubernetes.io/healthcheck-path: /usermgmt/health-status
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/success-codes: '200'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /app1/*
+            backend:
+              serviceName: app1-nginx-nodeport-service
+              servicePort: 80                        
+          - path: /app2/*
+            backend:
+              serviceName: app2-nginx-nodeport-service
+              servicePort: 80            
+          - path: /*
+            backend:
+              serviceName: usermgmt-restapp-nodeport-service
+              servicePort: 8095              
+# Important Note-1: In path based routing order is very important, if we are going to use  "/*", try to use it at the end of all rules.                         
+
+Step-05: Deploy all manifests and test
+Deploy
+kubectl apply -f kube-manifests/
+Verify ingress resource got created
+# List Ingress Load Balancers
+kubectl get ingress
+
+# List Pods
+kubectl get pods
+
+# List Services
+kubectl get svc
+Verify ALB Ingress Controller Logs
+# Verify logs
+kubectl logs -f $(kubectl get po -n kube-system | egrep -o 'alb-ingress-controller-[A-Za-z0-9-]+') -n kube-system
+We should not see anything like below log in ALB Ingress Controller, if we see we did something wrong with ALB Ingress Controleer deployment primarily in creating IAM Policy, Service Account & Role and Associating Role to Service Account.
+07:28:39.900001       1 controller.go:217] kubebuilder/controller "msg"="Reconciler error" "error"="failed to build LoadBalancer configuration due to unable to fetch subnets. Error: WebIdentityErr: failed to retrieve credentials\ncaused by: AccessDenied: Not authorized to perform sts:AssumeRoleWithWebIdentity\n\tstatus code: 403, request id: 3d54741a-4b85-4025-ad11-73d4a3661d09"  "controller"="alb-ingress-controller" "request"={"Namespace":"default","Name":"ingress-usermgmt-restapp-service"}
+Verify Application Load Balancer on AWS Management Console
+
+Verify Load Balancer
+
+In Listeners Tab, click on View/Edit Rules under Rules
+Verify Target Groups
+
+GroupD Details
+Targets: Ensure they are healthy
+Verify Health check path
+Verify all 3 targets are healthy)
+Access Application
+
+http://<ALB-DNS-URL>/app1/index.html
+http://<ALB-DNS-URL>/app2/index.html
+http://<ALB-DNS-URL>/usermgmt/health-status
+
+
+Step-06: Clean Up
+kubectl delete -f kube-manifests/
+
+***** AWS ALB Ingress Controller - SSL
+
+Step-01: Introduction
+We are going to register a new DNS in AWS Route53
+We are going to create a SSL certificate
+Add Annotations related to SSL Certificate in Ingress manifest
+Deploy the manifests and test
+Clean-Up
+
+Step-02: Pre-requisite - Register a Domain in Route53 (if not exists)
+Goto Services -> Route53 -> Registered Domains
+Click on Register Domain
+Provide desired domain: somedomain.com and click on check (In my case its going to be kubeoncloud.com)
+Click on Add to cart and click on Continue
+Provide your Contact Details and click on Continue
+Enable Automatic Renewal
+Accept Terms and Conditions
+Click on Complete Order
+
+Step-03: Create a SSL Certificate in Certificate Manager
+Pre-requisite: You should have a registered domain in Route53
+Go to Services -> Certificate Manager -> Create a Certificate
+Click on Request a Certificate
+Choose the type of certificate for ACM to provide: Request a public certificate
+Add domain names: *.yourdomain.com (in my case it is going to be *.kubeoncloud.com)
+Select a Validation Method: DNS Validation
+Click on Confirm & Request
+Validation
+Click on Create record in Route 53
+Wait for 5 to 10 minutes and check the Validation Status
+
+Step-04: Add annotations related to SSL
+07-ALB-Ingress-SSL.yml
+# SSL Setting - 1
+    ## SSL Settings
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}, {"HTTP":80}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:411686525067:certificate/8adf7812-a1af-4eae-af1b-ea425a238a67
+    #alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-1-2017-01 #Optional (Picks default if not used)    
+# SSL Setting - 2
+spec:
+  rules:
+    #- host: kubedemo.stacksimplify.com    # SSL Setting (Optional only if we are not using certificate-arn annotation)
+
+Step-05: Deploy all manifests and test
+Deploy
+kubectl apply -f kube-manifests/
+Verify
+Load Balancer - Listeneres (Verify both 80 & 443)
+Load Balancer - Rules (Verify both 80 & 443 listeners)
+Target Groups - Group Details (Verify Health check path)
+Target Groups - Targets (Verify all 3 targets are healthy)
+Verify ingress controller from kubectl
+kubectl get ingress 
+
+Step-06: Add DNS in Route53
+Go to Services -> Route 53
+Go to Hosted Zones
+Click on yourdomain.com (in my case stacksimplify.com)
+Create a Record Set
+Name: ssldemo.kubeoncloud.com
+Alias: yes
+Alias Target: Copy our ALB DNS Name here (Sample: 55dc0e80-default-ingressus-ea9e-551932098.us-east-1.elb.amazonaws.com)
+Click on Create
+Step-07: Access Application using newly registered DNS Name
+Access Application
+Important Note: Instead of kubeoncloud.com you need to replace with your registered Route53 domain (Refer pre-requisite Step-02)
+# HTTP URLs
+http://ssldemo.kubeoncloud.com/app1/index.html
+http://ssldemo.kubeoncloud.com/app2/index.html
+http://ssldemo.kubeoncloud.com/usermgmt/health-status
+
+# HTTPS URLs
+https://ssldemo.kubeoncloud.com/app1/index.html
+https://ssldemo.kubeoncloud.com/app2/index.html
+https://ssldemo.kubeoncloud.com/usermgmt/health-status
+
+
+***** AWS ALB Ingress Controller - Implement HTTP to HTTPS Redirect
+Step-01: Add annotations related to SSL Redirect
+Redirect from HTTP to HTTPS
+Provides a method for configuring custom actions on a listener, such as for Redirect Actions.
+The action-name in the annotation must match the serviceName in the ingress rules, and servicePort must be use-annotation.
+Reference for Custom Actions: https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/ingress/annotation/#actions
+Change-1: Add the Custom Action Annotation
+     # SSL Redirect Setting
+    alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'   
+SSL Redirect JSON
+{
+   "Type":"redirect",
+   "RedirectConfig":{
+      "Protocol":"HTTPS",
+      "Port":"443",
+      "StatusCode":"HTTP_301"
+   }
+Change-2: Add the following Path as first ingress rule in the Rules section
+          - path: /* # SSL Redirect Setting
+            backend:
+              serviceName: ssl-redirect
+              servicePort: use-annotation     
+
+Step-02: Deploy all manifests and test
+Deploy
+# Deploy
+kubectl apply -f kube-manifests/
+Verify
+Load Balancer - Listeneres (Verify both 80 & 443)
+Load Balancer - Rules (Verify both 80 & 443 listeners)
+Target Groups - Group Details (Verify Health check path)
+Target Groups - Targets (Verify all 3 targets are healthy)
+Verify ingress controller from kubectl
+kubectl get ingress 
+
+Step-04: Access Application using newly registered DNS Name
+Access Application
+# HTTP URLs (Should Redirect to HTTPS)
+http://ssldemo.kubeoncloud.com/app1/index.html
+http://ssldemo.kubeoncloud.com/app2/index.html
+http://ssldemo.kubeoncloud.com/usermgmt/health-status
+
+# HTTPS URLs
+https://ssldemo.kubeoncloud.com/app1/index.html
+https://ssldemo.kubeoncloud.com/app2/index.html
+https://ssldemo.kubeoncloud.com/usermgmt/health-status
+
+Step-05: Clean Up
+Delete Manifests
+kubectl delete -f kube-manifests/
+Delete Route53 Record Set
+Delete Route53 Record we created (ssldemo.kubeoncloud.com)
+
+Step-06: Annotation Reference
+Discuss about location where that Annotation can be placed (Ingress or Service)
+https://kubernetes-sigs.github.io/aws-alb-ingress-controller/guide/ingress/annotation/
+
+
+***** External DNS - Used for Updating Route53 RecordSets from Kubernetes
+Step-01: Introduction
+We need to create IAM Policy, k8s Service Account & IAM Role and associate them together for external-dns pod to add or remove entries in AWS Route53 Hosted Zones.
+Update External-DNS default manifest to support our needs
+Deploy & Verify logs
+
+Step-02: Create IAM Policy
+This IAM policy will allow external-dns pod to add, remove DNS entries (Record Sets in a Hosted Zone) in AWS Route53 service
+Go to Services -> IAM -> Policies -> Create Policy
+Click on JSON Tab and copy paste below JSON
+Click on Visual editor tab to validate
+Click on Review Policy
+Name: AllowExternalDNSUpdates
+Description: Allow access to Route53 Resources for ExternalDNS
+Click on Create Policy
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "route53:ChangeResourceRecordSets"
+      ],
+      "Resource": [
+        "arn:aws:route53:::hostedzone/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "route53:ListHostedZones",
+        "route53:ListResourceRecordSets"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
+}
+Make a note of Policy ARN which we will use in next step
+arn:aws:iam::180789647333:policy/AllowExternalDNSUpdates
+
+Step-03: Create IAM Role, k8s Service Account & Associate IAM Policy
+As part of this step, we are going to create a k8s Service Account named external-dns and also a AWS IAM role and associate them by annotating role ARN in Service Account.
+In addition, we are also going to associate the AWS IAM Policy AllowExternalDNSUpdates to the newly created AWS IAM Role.
+Create IAM Role, k8s Service Account & Associate IAM Policy
+# Template
+eksctl create iamserviceaccount \
+    --name service_account_name \
+    --namespace service_account_namespace \
+    --cluster cluster_name \
+    --attach-policy-arn IAM_policy_ARN \
+    --approve \
+    --override-existing-serviceaccounts
+
+# Replaced name, namespace, cluster, arn 
+eksctl create iamserviceaccount \
+    --name external-dns \
+    --namespace default \
+    --cluster eksdemo1 \
+    --attach-policy-arn arn:aws:iam::180789647333:policy/AllowExternalDNSUpdates \
+    --approve \
+    --override-existing-serviceaccounts
+Verify the Service Account
+Verify external-dns service account, primarily verify annotation related to IAM Role
+kubectl get sa external-dns
+Verify CloudFormation Stack
+Go to Services -> CloudFormation
+Verify the latest CFN Stack created.
+Click on Resources tab
+Click on link in Physical ID field which will take us to IAM Role directly
+Verify IAM Role & IAM Policy
+With above step in CFN, we will be landed in IAM Role created for external-dns.
+Verify in Permissions tab we have a policy named AllowExternalDNSUpdates
+Now make a note of that Role ARN, this we need to update in External-DNS k8s manifest
+arn:aws:iam::180789647333:role/eksctl-eksdemo1-addon-iamserviceaccount-defa-Role1-1O3H7ZLUED5H4
+
+Step-04: Update External DNS Kubernetes manifest
+Original Template you can find in https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/aws.md
+File Location: kube-manifests/01-Deploy-ExternalDNS.yml
+Change-1: Line number 9: IAM Role update
+Copy the role-arn you have made a note at the end of step-03 and replace at line no 9.
+    eks.amazonaws.com/role-arn: arn:aws:iam::411686525067:role/eksctl-demo1-addon-iamserviceaccount-default-Role1-M7IEPRHZYLPB   
+Chnage-2: Line 55, 56: Commented them
+We used eksctl to create IAM role and attached the AllowExternalDNSUpdates policy
+We didnt use KIAM or Kube2IAM so we don't need these two lines, so commented
+      #annotations:  
+        #iam.amazonaws.com/role: arn:aws:iam::ACCOUNT-ID:role/IAM-SERVICE-ROLE-NAME    
+Change-3: Line 65, 67: Commented them
+        # - --domain-filter=external-dns-test.my-org.com # will make ExternalDNS see only the hosted zones matching provided domain, omit to process all available hosted zones
+       # - --policy=upsert-only # would prevent ExternalDNS from deleting any records, omit to enable full synchronization
+
+Step-05: Deploy ExternalDNS
+Deploy the manifest
+# Deploy external DNS
+kubectl apply -f kube-manifests/
+
+# Verify Deployment by checking logs
+kubectl logs -f $(kubectl get po | egrep -o 'external-dns[A-Za-z0-9-]+')
+
+# List pods (external-dns pod should be in running state)
+kubectl get pods
+References
+https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/alb-ingress.md
+https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/aws.md
+
+
+***** External DNS - Use it for our Applications
+
+Step-01: Update Ingress manifest by adding External DNS Annotation
+Added annotation with two DNS Names
+dnstest1.kubeoncloud.com
+dnstest2.kubeoncloud.com
+Once we deploy the application, we should be able to access our Applications with both DNS Names.
+07-ALB-Ingress-SSL-Redirect-ExternalDNS.yml
+    # External DNS - For creating a Record Set in Route53
+    external-dns.alpha.kubernetes.io/hostname: dnstest1.kubeoncloud.com, dnstest2.kubeoncloud.com    
+In your case it is going to be, replace yourdomain with your domain name
+dnstest1.yourdoamin.com
+dnstest2.yourdoamin.com
+
+Step-02: Deploy all Application Kubernetes Manifests
+Deploy
+# Deploy
+kubectl apply -f kube-manifests/
+Verify Load Balancer & Target Groups
+- Load Balancer -  Listeneres (Verify both 80 & 443) 
+- Load Balancer - Rules (Verify both 80 & 443 listeners) 
+- Target Groups - Group Details (Verify Health check path)
+- Target Groups - Targets (Verify all 3 targets are healthy)
+- Verify ingress controller from kubectl
+Verify External DNS Log
+# Verify External DNS logs
+kubectl logs -f $(kubectl get po | egrep -o 'external-dns[A-Za-z0-9-]+')
+External DNS Log
+time="2020-05-29T04:25:55Z" level=info msg="Desired change: CREATE dnstest1.kubeoncloud.com A [Id: /hostedzone/Z29P9D94N7I5H5]"
+time="2020-05-29T04:25:55Z" level=info msg="Desired change: CREATE dnstest2.kubeoncloud.com A [Id: /hostedzone/Z29P9D94N7I5H5]"
+time="2020-05-29T04:25:55Z" level=info msg="Desired change: CREATE dnstest1.kubeoncloud.com TXT [Id: /hostedzone/Z29P9D94N7I5H5]"
+time="2020-05-29T04:25:55Z" level=info msg="Desired change: CREATE dnstest2.kubeoncloud.com TXT [Id: /hostedzone/Z29P9D94N7I5H5]"
+time="2020-05-29T04:25:55Z" level=info msg="4 record(s) in zone zetaoptdemo.com. [Id: /hostedzone/Z29P9D94N7I5H5] were successfully updated"
+time="2020-05-29T04:26:55Z" level=info msg="All records are already up to date"
+time="2020-05-29T04:27:55Z" level=info msg="All records are already up to date"
+time="2020-05-29T04:28:55Z" level=info msg="All records are already up to date"
+Verify Route53
+Go to Services -> Route53
+You should see Record Sets added for dnstest1.kubeoncloud.com, dnstest2.kubeoncloud.com
+
+Step-04: Access Application using newly registered DNS Name
+Perform nslookup tests before accessing Application
+Test if our new DNS entries registered and resolving to an IP Address
+# nslookup commands
+nslookup dnstest1.kubeoncloud.com
+nslookup dnstest2.kubeoncloud.com
+Access Application using dnstest1 domain
+# HTTP URLs (Should Redirect to HTTPS)
+http://dnstest1.kubeoncloud.com/app1/index.html
+http://dnstest1.kubeoncloud.com/app2/index.html
+http://dnstest1.kubeoncloud.com/usermgmt/health-status
+Access Application using dnstest2 domain
+# HTTP URLs (Should Redirect to HTTPS)
+http://dnstest2.kubeoncloud.com/app1/index.html
+http://dnstest2.kubeoncloud.com/app2/index.html
+http://dnstest2.kubeoncloud.com/usermgmt/health-status
+
+Step-05: Clean Up
+kubectl delete -f kube-manifests/
+References
+https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/alb-ingress.md
+https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/aws.md
+

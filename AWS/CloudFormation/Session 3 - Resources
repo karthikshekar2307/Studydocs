@@ -1,0 +1,178 @@
+Session 3 - Resources
+---------------------
+
+***** Resources Introduction
+- Key components of stack
+- Is a required section
+- Syntax
+Resources:
+  Logical ID:
+    Type: Resource type
+    Properties:
+      set of properties
+
+Example:
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: "ami-0klsdjhf8394230"
+
+
+Step 1 - Create resource - EC2 instance
+Step 2 - Add Second resource  - New security group and Intrinsic fucntion Ref
+Step 3 - Update resource properties - Add new rule to security group
+Step 4 - Add third resource - ElasticIP
+Step 5 - Perform Case sensitive test with resource properties
+
+
+***** Create a resource - Ec2 instance
+Step01 - Create resource - EC2 instance
+vi 04-01-cfn-ec2-instance.yaml
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: ami-0sdfsjkd134343j 
+      InstanceType: t2.micro
+      KeyName: cfn-key-1
+      SecurityGroups: 
+        - default
+
+
+***** Create a resource - Security Group
+vi 04-01-cfn-ec2-add-new-security-group.yaml
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 Instance
+Resources:
+  DevEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageID: ami-2ksdjfysd121sdgfdf
+      InstanceType: t2.micro
+      KeyName: cfn-key-1
+      SecurityGroups:
+        - default
+        - !Ref SSHSecurityGroup
+  SSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: my new SSh SG
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+
+
+Intrinsic Function: Ref
+Ref - is a intrinsic fucntion that returns the value of the specified parameter or resource.
+- Resource Case: When we specify a resource logical name, it returns a value that we can typically use to refer to that resource
+- Parameter Case: When we specfy a paramerter logical name, it returns the value of that parameter
+- Syntax:
+ - Long Form
+   - Ref: LogicalName
+ - Short Form
+   - !Ref LogicalName
+
+
+***** Create new rule in existing security group
+04-03-cfn-ec2-add-new-rule.yaml
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 Instance
+Resources:
+  DevEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageID: ami-2ksdjfysd121sdgfdf
+      InstanceType: t2.micro
+      KeyName: cfn-key-1
+      SecurityGroups:
+        - default
+        - !Ref SSHSecurityGroup
+  SSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: my new SSh SG
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+
+
+***** Create a new resource - Elastic IP
+04-04-cfn-ec2-add-elastic-ip.yaml
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 Instance
+Resources:
+  DevEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageID: ami-2ksdjfysd121sdgfdf
+      InstanceType: t2.micro
+      KeyName: cfn-key-1
+      SecurityGroups:
+        - default
+        - !Ref SSHSecurityGroup
+  SSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: my new SSh SG
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+  MyElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref DevEc2Instance
+
+
+***** Perform CloudFormation template - Case sensitive test
+04-04-cfn-ec2-add-elastic-ip.yaml
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 Instance
+Resources:
+  DevEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageID: ami-2ksdjfysd121sdgfdf
+      InstanceType: t2.micro
+      KeyName: cfn-key-1
+      SecurityGroups:
+        - default
+        - !Ref SSHSecurityGroup
+  SSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: my new SSh SG
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIP: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '8081'
+          ToPort: '8081'
+          CidrIP: 0.0.0.0/0
+  MyElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref DevEc2Instance

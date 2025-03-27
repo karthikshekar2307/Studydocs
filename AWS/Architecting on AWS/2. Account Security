@@ -1,0 +1,30 @@
+***** Principles and Identities
+Principles - The one who performs actions on AWS
+
+IAM - Authentication and authorization
+
+ways to login
+- Console access
+- Programmatic access
+
+Trusted entities
+IAM user
+AWS services
+Federated user (non-AWS)
+
+How it works:
+- Trusted entities uses an API call to assume a role, STS evaluates the request and returns temporary security credentials
+- Trusted entities then, uses the temporary crdentials to access AWS resources
+
+
+***** Security Policies
+Policy types
+- Set maximum permissions
+- Grant permissions
+
+AWS managed policies (service access, Job function)
+Customer managed - Custom policy
+
+How policies are evaluated
+- Is the action explicitly denied? - yes - Deny
+- Is the action explicitly denied? - No - Is the action explicitly allowed? - No - Deny (Implicit deny)

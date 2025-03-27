@@ -1,0 +1,51 @@
+Session 3 : Authentication and Authorization
+-----------------------------------------------
+
+- Authentication: logging into the cluster
+- Authorization: What permissions/roles you have in cluster
+
+Users:
+- developer - normal user
+- kubeadmin - root of cluster
+developer
+admin
+
+***** Authenticating API requests
+# oc login -u admin -p redhat <url of openshift>
+(A token will be generated for admin user or x.509 client certificate (its also called oauth token to authenticate user to cluster))
+
+Identity providers
+- htpasswd
+
+***** RBAC
+authorization using RBAC
+api objects
+- role
+- Clusterrole
+- role binding
+- cluster role binding
+
+
+role and clsuter role - this contains set of roles specified in namespace, clsuter to user or group
+the cluster role is non-namespaced resources
+define permissions on namespace resources and grant access within individual namespace
+rules: set of permitted verbs on a set of objects [view,get,list]
+role: set of values, where we can bind user and group set of multip;e roles
+binding: associate with role to user or group
+
+rolebinding: it grants permissions defne in the role to user or group
+
+admin: view any resources in the project can modify resource in the project except quota, basic-user; info about project and Users
+cluster-admin: bound user with local binfing full on role resouece quota
+cluster-status: get basic cluster status info
+cluster-reader: view most of obkject cannot modify them
+edit: modify any object in a project
+self-provisioner: user can create a project
+view:
+
+core component of role:
+system:kube-scheduler: allow acess to the resource required by scheduler component
+system:volume-scheduler:
+system:kube-controller-manager:
+
+

@@ -1,0 +1,123 @@
+***** Route 53 Overview
+- Authoritative DNS (we can update DNS)
+- Also domain registrar
+- Check health of resources
+- 100% availability SLA
+
+Record types
+A - IP 
+AAAA - IPv6 address
+CNAME - Alias for another name. Can be used to redirect traffic from one website to the other, or a subdomain to an alias in another zone
+NS - name servers for the hosted zone
+
+Route 53 - Hosted Zones
+- A container for records that define how to route traffic to a domain and subdomain
+
+- Public hosted zones - contains records that specify how to route traffic on the intervention
+
+- Private hosted zones - contain records that specify how you route traffic within one or more VPCs
+
+***** Creating records
+
+***** TTL (time to live)
+- client will cache the data for time of TTL
+
+***** CNAME vs Alias
+CNAME: points a hostname to any other hostname (only for non-root domains)
+Alias: points a hostname to any other hostname (supports root domain), native heatlh checks and its free
+
+Alias cannot be set for EC2 DNS name
+
+
+***** Routing Policy - Simple
+DNS perspective
+
+- Typically, route traffic to a single resource
+- can specify multiple values in the same records
+- If multiple values are returned, a random one is chosen by the client
+- When alias enabled, specify only one AWS resource
+- Can't be associated with health checks
+
+Routing policy:
+Simple
+Weighted
+Latency
+failover
+geolocation
+IP based
+multivalue
+
+
+***** Routing Policy - Weighted
+- Control the % of requests that go to each specific resource
+- Assign each record a relative Weighted
+- DNS record must have same name and type
+- can be associated with heath checks
+- assign weight of 0 to stop
+
+
+***** Routing policy - Latency
+- redirect to resource that has least latency close to used
+- super helpful when latency for users is a priority
+- latency is based on traffic between  users and AWS regions
+- can be associated with health checks
+
+
+***** Route53 Health checks
+- HTTP health checks are only for public resources
+- Health check: Automated DNS Failover:
+1. Health checks that monitor an endpoint (application, server, other AWS resource)
+2. Health checks that monitor other heatlh checks (calculated heatlh checks)
+3. Health checks that monitor CloudWatch Alarms (full control) eg. Throttles of DynamoDB, alarms on RDS, custom metrics
+
+Health checks are integrated with CW metrics
+
+- About 15 global health checkers will check the endpoint health
+health/unhealthy threshold - 3 (default)
+interval - 30 sec (can set to 10 sec - higher cost)
+supported protocol: HTTP, HTTPS and TCP
+If > 18% of health checkers report the endpoint is healthy, Route53 considers it healthy, otherwise, its unhealthy
+Ability to choose which locations you want Route 53 to use
+
+- Health checks pass only when the endpoint responds with the 2xx and 3xx status codes
+- Health checks can be setup to pass/fail based on the text in the first 5120 bytes of the response
+- Configure you router/firewall to allow incoming requests from Route53 Health checkers
+
+- Caculated ehalth checkers
+Combine the results of multiple health checks into a single health check
+you can use OR, AND and NOT
+Can moniotor up to 256 child health checks
+Specify how many of the health checks need to pass to make the parent pass
+Usage: Perform maintenance to your website without causing all heatlh checks to fail
+
+- Route53 health checkers are outside the VPCs
+- They can't access provate endpoints (private VPC or on-premises resource)
+- You can create a CloudWatch metric and associate a CloudWatch alarm, then create a Health check that checks the alarm itself
+
+
+***** Route 53 policy - failover
+
+
+***** Routing policy - geolocation
+- Different from latency-based
+- based on userlocation
+- specify locations
+- create default record
+- can be associated with health checks
+
+
+***** Routing policy - Geoproximity
+ - based on geographic location of users
+ - bias value
+
+
+***** Routing policy - IP based
+- based on client's IP
+- you provide a list of CIDRs for your clients
+- Route end users from particular ISP to specific endpoint
+
+***** Routing policy - Multi value
+- use when routing traffic to multuple resources
+
+
+***** 3rd party domains and Route53

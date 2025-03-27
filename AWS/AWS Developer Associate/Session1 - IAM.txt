@@ -1,0 +1,64 @@
+****** IAM Introduction: Users , groups and policies
+- Users or groups can be assigned JSON documents called policies
+- These policies define the permissions of the Users
+- In AWS you apply least privilege permissions
+
+
+***** IAM Policies
+
+Policy structure
+- consists of version number
+- id (optional)
+- Statement: one or more individual statements
+
+Statement consists of
+- sid: an identifier for the statement (optional)
+- Effect: whether the statement allows or denies access (allow, Deny)
+- Principal: account/user/role to which this policy applied to
+- Action: list of actions this policies applies to
+- Resource: list of resources to which the actions applied to
+
+
+***** IAM MFA Overview
+IAM - Password policy
+Multi-FActor Authentication - MFA
+
+MFA devices options
+- Virtual MFA devices
+Google Authenticator
+Authy
+Yubikey
+Hardware key Fob MFA devices
+Hardware key Fob MFA device for AWS GovCloud (US)
+
+
+***** AWS Accesskeys, SDK and CLI
+There are 3 different options to access AWS
+(a) Console
+(b) CLI
+(c) AWS Software development kit (SDK) - for code: protected by access keys
+
+
+***** AWS CloudShell
+
+***** IAM Roles
+
+***** IAM Security tools
+-IAM credentials report (account-level)
+A report that lists all your account's users and the status of their various credentials
+
+- IAM access advisor (user-level)
+Access advisor shows the serivice permissions granted to a user and when those services were last accessed
+You can use this information to revise your policies
+
+
+***** IAM Guidelines and best practices
+- Dont use the root account except for AWS account setup
+- one physical user = one AWS user
+- Assign users to groups and assign permissions to groups
+- Create a strong password policy
+- Use and enforce the use of MFA
+- Create and use roles for giving permissions to AWS services
+- Use Access keys for programmatic access (CLI/SDK)
+- Audit permissions of your account using IAM credentials report and IAM access advisor
+- Never share IAM users and access keys

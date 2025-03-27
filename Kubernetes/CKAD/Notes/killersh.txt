@@ -1,0 +1,79 @@
+1. The DevOps team would like to get the list of all Namespaces in the cluster.
+Get the list and save it to /opt/course/1/namespaces on ckad5601
+# kubectl get ns  > /opt/course/1/namespaces on ckad5601
+
+2. Create a single pod of image httpd:2.4.41-alpine in Namespace default.
+The pod should be named pod1 and the container should be named pod1-container.
+Your manager would like to run a command manually on occation to output status of
+the exact pod. 
+# kubectl run pod1 --image httpd:2.4.41-alpine --dry-run=client -oyaml pod1.yaml
+# kubectl get pods > /opt/course/2/pod1-status-command.sh
+
+3. Team neptune needs a job template located at /opt/course/3/job.yaml. 
+This job should run image busybox:1.13.0 and execute sleep 2 && echo done.
+it should be in namespace neptune, run a total of 3 times and should execure 2 
+runs in parallel.
+
+Start the job and check its history. Each pod created by the job should have
+the label id: awsome-job. The job should be named neb-new-job and the container
+neb-new-job-container.
+# k create job -n neptune neb-new-jon --image=busybox:1.31.0 --dry-run=client -o yaml > /opt/course/3/job.yaml
+
+
+4. Team mercury asked you to perform some operations using Helm in all namespaces mercury
+1. Delete release internal-issue-report-apiv1
+2. Upgrade release internal-issue-report-apiv2 to any newwe version of chart
+bitnami/nginx available
+3. Install a new release internal-issue-report-apache of chart bitnami/apache.
+The deployment should have two replicas, set these via helm-values during install
+4. There seems to be a broken release, stuck in pending-install state. find and delete it
+
+# helm -n mercury ls
+# helm -n mercury uninstall install-issu-report-apiv1
+# helm repo list
+# helm repo update
+# helm search repo nginx
+# helm -n mercury upgrade internal-issue-report-apiv2 bitnami/nginx
+# helm show values bitname/apache | grep -i replicacount -A 5 -B 5
+# helm -n mercury install internal-issue-report-apache bitnami/apache --set replicaCount=2
+# helm -n mercury ls
+# helm -n mercury ls -A
+# helm -n mercury uninstall internal-issue-report-daniel
+
+
+5. Team neptune has its own service account named neptune-sa-v2 in Namespace neptune. A coworker needs 
+the token from the secret that belongs to that ServiceAccount. Write the base64 decoded token
+to file /opt/course/5/token on ckad7326
+# k  get sa -n neptune
+# k describe -n neptune sa neptune-sa-v2
+# k get secrets -n neptune
+# k get secret -n neptune-secret-1 -o=jsonpath="{.data.token}" | base64 -d > /opt/course/5/token
+
+
+6. Create a single pod named pod6 in namespace default of image busybox:1.31.0. The pod should have a 
+readiness-probe executing  cat /tmp/ready. It should initially wait 5 and periodically wait 10 
+seconds. This will set the container read only if the file /tmp/ready exists
+The pod should run the command - touch /tmp/ready && sleep id, which will create the necessary file
+to be ready and then idles. Create the pod and confim it starts.
+
+
+7. The board of team neptune decided to take over control od one e-commerce webserver from team saturn
+The administrator who once setup this webserver is not part of the organisation any longer
+Search for the correct pod in Namespace saturn and move it to namespace neptune. it does not matter
+if you shut it down and spin it up again.
+
+
+8. There is an existing deployment named api-new-c32 in Namespacce neptune. A developer did make 
+an update to the Deployment but the updated version never came online.
+Check the deployment history and fing a revision that works. then rollback to it.
+# kubectl -n neptune rollout hoistory deployemnt api-new
+# kubectl -n neptune rollout undo deployment api-new-c32
+
+
+9. convert pod to deployment and set security context
+
+10. create pod, service and test curl
+# kubectl -n pluto expose pod projet --name svc --port 3333 --target-port 80
+#kubectl get ep -n pluto
+
+# kubectl run tmp --restart=Never --rm --inage=nginx:alpine -i curl http://project:33333

@@ -1,0 +1,131 @@
+Session 7 - Practicals
+-----------------------
+
+**** Volumes
+vi pod-definition.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: random-number-generator
+spec:
+  containers:
+  - image: alpine
+    name: alpine
+    command: ["/bin/sh","-c"]
+    args: ["shuf -i 0-100 -n 1 >> /opt/number.out;"]
+    volumeMounts:
+    - mountPath: /opt
+      name: data-volume
+  volumes:
+  - name: data-volume
+    hostPath:
+      path: /data
+      type: Directory
+
+
+***** Persistent Volumes
+vi pv-definition.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-vol1
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  hostPath:
+    path: /tmp/data
+
+
+# kubectl create -f pv-definition.yaml
+# kubectl get persistentvolumes
+
+
+***** Persistent volume claims
+
+# vi pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+
+
+# kubectl create -f pvc-definition.yaml
+# kubectl get persistentvolumeclaims
+
+To delete PVC
+# kubectl delete persistentvolumeclaim myclaim
+
+Default policy:
+PersistentVolumeReclaimPolicy: Retain
+
+
+***** Practise test
+The application stores logs at location /log/app.log. View the logs.
+
+You can exec in to the container and open the file:
+kubectl exec webapp -- cat /log/app.log
+
+***** Storage Class
+Static provisioning:
+
+With storage class, you can have automatic provisioning of volumes (Dynamic prosioning)
+
+Instead of creating PV definition file, we create SC definition
+sc-definition.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: google-storage
+provisionier: kubernetes.io/gce-pd
+
+Then define the storage class name in pvc definition file
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: google-storage
+  resources:
+    requests:
+      storage: 500Mi
+
+Then update POD definition
+apiVersion: v1
+kind: Pod
+metadata:
+  name: random-number-generator
+spec:
+  containers:
+  - image: alpine
+    name: alpine
+    command: ["/bin/sh","-c"]
+    args: ["shuf -i 0-100 -n 1 >> /opt/storage"]
+    volumeMounts:
+    - mountPath: /opt
+      name: data-volume
+    volumes:
+    - name: data-volume
+      persistentVolumeClaim:
+        claimName: myclaim
+
+
+With storage class you can specify additional options
+sc-definition.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: google-storage
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-standard [ pd-standard | pd-ssd ]
+  replication-type: none [none | regional-pd ]

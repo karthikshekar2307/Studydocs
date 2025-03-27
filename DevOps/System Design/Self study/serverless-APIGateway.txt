@@ -1,0 +1,59 @@
+***** Serverless
+Serverless web hosting
+- Runs On-demand
+- Unlimited capaciy - only pay for code executions
+- Scales automativally (pay what you need)
+- Runs on managed AWS infrastructure
+- Code runs in up to date and secure environment
+- Great for SPA + API apps limited support for fullstack apps
+
+***** Core services
+Which services do we need
+- S3 : static app
+- APIGateway : RestAPI
+- Lambda: Execute code on demand
+- DynamoDB: store and retrieve data
+- Cognito: Auth (create user pools)
+- Route53: translate URL
+- Cloudfront: Cache/Improve performance
+
+***** Creating an API with API Gateway and Lambda
+- What is API Gateway
+Application -> RestAPI -> API Gateway (Define API endpoints and HTTP methods), Authorize access --> Action (Directly access some AWS services / Run Lambda code (and forward request data))
+
+- General API Gateway features
+API Keys - useful when sharing APIs with other developers
+Create API keys (set usage plans to API key)
+
+- API secofic features and options
+To make any API available or make it live, we need to "Deploy API"
+stages are like snapshots and not editable
+All development happens in resources
+Authorizers - implements authorization
+Model - What type of API schema or model
+Documentation - update users on reply 
+Binary support - sending files along with request
+Dashboard - usage data
+
+- Understanding request response cycle
+Integration response - is used to set how responses are being sent back
+Method response - for response data, shape of response
+
+- Creating a new API
+
+- Create a resource
+observe where (path) that you want to create resource.
+proxy resource (where to caches), helpful on full stack application
+
+- Handling CORS and he options preflight request
+CORS = Cross origin resource sharing
+For it to work client needs to provide headers to allow other servers to accept the requests
+
+- Creating a HTTP method
+
+
+- What is AWS Lambda
+Event Source(S3, CloudWatch, API Gateway)  ---> Code (NodeJS, Python, Java, C#) ---> Result
+
+
+- Creating Lambda function

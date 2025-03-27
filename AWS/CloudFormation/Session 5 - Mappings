@@ -1,0 +1,116 @@
+5. Mappings
+---------------
+
+***** Mappings Introduction
+
+- Mappings section matches a key to a corresponding set of named values
+
+- For example, if we want to set valus based on a region, we can create a mapping that uses region name as a key and contains the values we want to specify for each region
+
+- We can use Fn::FindInMap intrinsic function to retrieve values in map
+
+
+Intrinsic function: FindInMap
+
+- The intrinsic function FindInMap returns the value corresponding to keys in a two-level map that is declared in Mapping section.
+
+- Parameters
+  - Map Name
+  - Top Level key
+  - Second level key
+  - Return Value
+
+
+***** Psuedo parameters
+
+- Pseudo parameters are parameters that are predifined by AWS CloudFormation.
+
+- We dont need to declare them in our template
+
+- We can use them the same way as we use parameters as an arguement for Ref function.
+
+Usage:
+Value: !Ref "AWS::Region"
+
+Pseudo paramerters example
+- AWS::AccountID
+- AWS::NotificationARNs
+- AWS::NoValue
+- AWS::Partition
+- AWS::Region
+- AWS::StackID
+- AWS::StackName
+- AWS::URLSuffix
+
+
+***** Create a map for AMIs
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::Keyname
+    Description: Select the keypair
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: t2.micro
+      KeyName: !Ref MyKeyName
+      SecurityGroups: 
+        - default
+
+
+***** Create a map for Environments
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: Basic EC2 instance.
+Parameters:
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::Keyname
+    Description: Select the keypair
+  EnviromentName:
+    Description: select the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+Mappings:
+  MyRegionMap:
+    us-east-2:
+      HVM64: ami-0sdfsjkd134343j
+    us-west-2
+      HVM64: ami-0sdfsjkd134343j
+  MyEnvironmentMap:
+    dev:
+      instanceType: t2.micro
+    prod:
+      instanceType: t2.small
+
+Resources:
+  MyEc2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageID: !FindInMap
+        - MyRegionMap
+        - !Ref 'AWS::Region'
+        - HVM64 
+      InstanceType: !FindInMap
+        - MyEnvironemntMap
+        - !Ref Environment
+        - instanceType
+      KeyName: !Ref MyKeyName
+      SecurityGroups: 
+        - default
