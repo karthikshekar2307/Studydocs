@@ -1,0 +1,84 @@
+**** Kubernetes networking model
+- Pods within the cluster can communicate with pod on any node on cluster without NAT.
+- Kubelet running on nodes can communicate with any pods on that node.
+- IP-per-pod: apps running in VM
+- containers within same pod share network namespace (sharing IP and MAC)
+- Network namespace is a feature of linux kernel that allows for different process to have their own isolated network stack
+and configuration that includes interfaces, routing tables, sockets, firewalls
+
+4 Network problem that kuberenetes address
+1. Container to containers
+2. Pod to pod communications
+3. Pod to service
+4. Externel to service
+
+Where multiple applications co-exist on shared machines, traditionally this shared environment, requires careful
+co-ordiation to avoid conflict of port usage.
+
+Dynamic port allocation introduces additional complexity to the system.
+
+API server need to work on how to allocate dynamic port numbers  and configuration blocks.
+
+In response to above Kubernetes adopts alternate approach.
+
+In Kuberentes, the allocation on non overlapping IP addresses for Pods, services and nodes as central, In kubenetes these allocation are
+managed by designated range of available addresses and involves setting up specifc components as follows
+
+1. Network plugin - to allocate IP address to pods
+2. KubeAPI server - handle IP to services
+3. Kubelet - manage assignment of IP to nodes
+
+- Container network interface
+Model is implemented by Container runtime engine of the cluster.
+Container runtime uses CNI.
+
+CNI  is plugin kubernetes uses to deliver networking function to pod.
+- communication between containers
+- Configure networking aspects
+- establish virutal networks
+- configure network interface
+- IP management
+
+Plugins are provided 
+- calico
+- flannel
+- weave
+- cilium
+
+
+***** Demo
+To list which network namespace these containers beloing to
+- login to the nodes where the pods are running
+# ssh node1
+# lsns -t pid - list namepaces running using Pid
+# ip netns identify <pid>
+
+List actual interfaces running
+# ip a
+
+List all process for containers
+# lsns -t pid
+
+find out which namespaces these belongs to
+# for i in 6814 6901 6933; do ip netns identify $i; done
+- get list of namespaces
+
+To show network configuration of network namespace
+# ip netns exec cni-wqwewerwerwer  ip add
+- shows interfaces configured in that network namespace.
+
+- log in to main node
+# kubectl exec pod1 -c container1 -- ip add
+# kubectl exec pod1 -c container2 -- ip add
+
+
+Connect to pod
+# kubectl exec pod1 -c container1 -- curl -s localhost:80 -vvv
+
+get IP address for both pods
+# kubectl get pods -o=jsonpath='{range .items[*]}{"podName: " }{.metadata.name}{"\t"}{"podIP: "}{.status.podIP}{"\n"}{end}'
+
+# kubectl exec pod1 -c container1 -- curl 10.0.0.239:80
+
+
+

@@ -1,0 +1,44 @@
+***** Using Prometheus exporters
+1. Prometheus exporters: 
+Extend existing systems and translate metrics to Prometheus format
+Existing systems
+- Linux servers
+- MySQL database
+- Messaging services - RabbitMQ
+There are many exporters
+https://prometheus.io/docs/instrumenting/exporters/
+
+To use exporters
+- Identify and install desired exporter on Target system.
+- Create Prometheus job to pull data from exporters
+- prometheus will gather matrics and report on job status
+- You can setup multiple targets and multiple exporters
+- User can write own exporters
+
+*****  Monitoring Linux Servers with Node Exporters
+Linux Machines - nodeexporter - Prometheus
+
+Node exporters - Gathers data from targets (linux machine) then,
+transforms the data in Prometheus format
+
+then prometheus will shwo data on UI
+
+We need to configure job in prometheus to pull data
+
+Steps to setup
+- Download the node exporter on targt machine
+- Extract and start Node exporter
+- Check that metrics are publishing (port 9100)
+- To change default port (--web.listen-address-":9030")
+   list of paramters and defaults
+- Prometheus configuration for exporter
+- Create a job to pull metrics from exporter
+   prometheus/prometheus.yml
+   scrape_configs:
+     - job_name: 'node_exporter'
+       static_configs:
+       - targets: ['machine_ip:port']
+- Restart prometheus to pick up the changes
+
+
+***** WMI Expoter - Windows monitoring

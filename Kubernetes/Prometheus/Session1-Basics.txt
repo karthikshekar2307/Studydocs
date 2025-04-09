@@ -1,0 +1,60 @@
+ Basics
+- Opensource system monitoring and alerting mechanism
+- Its multi-dimentional data model with time series data
+
+Why prometheus
+- reason of learning prometheus is dynamic infrastructure.
+- Monitoring and alerting
+
+Terminology
+- Monitoring: collecting and recording activity
+- Alert: outcome of alerting rule in prometheus,sent from prometheus to alert manager
+- Alert manager: Takes in alert from Prometheus server. Do pricessing on collected data and then send notification as per defined process.
+- Target: Whose metrics are to be monitor
+- Instance - Endpoint you can scraape is called instance
+- Job - Collection of target/instance with same purpose
+
+Architecture Overview
+- Binary for prometheus server (main component)
+- Retrieval component wikll retrieve the metrics from instance, jons
+- Strorage/TSDB - stores on node
+- HTTP server - retrieve the data from TSDB, it will get sync with data visualization tool
+- jobs/exports - promethus target, export helps to get data from unix, linux, exporters and jobs are collecting data from prometheus target an retriever will pull the log from prometheus exporter
+Prometheus server component (retriver) pulls the data
+prometheus pull data from target.
+- Push Gateway: for short lived jobs (cron jobs), short lived data scraps data from target and pushes to push gateway, push gateway is temporary, not a permanent, from push gatewy, tretirver will pull the metrics
+- Service Discovery: There are multiple instances creating and getting destroyed (scale-in and scale-out), use service discoverwy. Retriever will discover the target based on dynamic inventory, you ned to maintain dynamic inventory
+- Data visualization/export: use PRomQL or hit http api and get metrics (Prometheus webUI), Grafana, custom API clients
+- Alert manager - retrieve the alert for prometheus server, pushes to alert manager, then push to the endpoint.
+
+Advantages:
+- Scrape the metrics from any system/machine/application
+- Any system you need to monitor with Prometheus, needs to run an exporter
+- Exporters provides the metrics in HTTP endpoint
+
+Types of metrics
+node_filefd_allocated
+Batch processing ----> Client library (for jobs) ----> (process_cpu_seconds_total 3.22)
+Exporters for system
+Client Libraries for application
+
+Understanding Prometheus Metric types
+Retrieve data via http endpoint (pull) via client libraries and exporter
+Content of metrics depends on endpoints. Prometheus store the content in TSDB
+All metrics returned to prometheus follows the standard prometheus format
+node_filefd_allocated 1100
+
+Prometheus metric types
+- counter - A counter is a cumulative metric that represents a increasing counter whose value can only increase or be reset to zero on restart (ex - counter to represent the number of requests served, tasks completed or errors)
+- gauges - A guage is a metric that represents a single numerical value that can arbitrarily go up and down
+- History metrics  
+- Summary metric - to calcualte average of something. Summary metric is used to calculate quantiles over a sliding time window. It provides information about the distribution of values, including quantiles (percentiles) and a sum of observations.
+The quantiles show the values below which a certain percentage of observations fall. we get following component - count, sum and quantiles
+Count - Number of times event has occurred
+sum - Total size of all the events
+Quantiles - values representing specific percentiles
+- Histogram metric - used to calculate the distruibution of values into buckets. It provides insights into how data is distributed across various value ranges. it provides - count, sum, and bucket values
+
+
+
+

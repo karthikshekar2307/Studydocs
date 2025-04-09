@@ -1,0 +1,24 @@
+***** Prometheus Installation types
+- Docker container
+- Pre-compiled binaries
+- Using Configuration management tool
+Ansible
+Chef
+Puppet
+Saltstack
+- Prometheus with Kubernates (cusom install)
+
+***** Installation
+
+https://prometheus.io/download/
+
+# ./prometheus --version
+prometheus, version 3.2.1 (branch: HEAD, revision: 804c49d58f3f3784c77c9c8ec17c9062092cae27)
+  build user:       root@42fd9529152a
+  build date:       20250226-09:19:49
+  go version:       go1.23.6
+  platform:         linux/amd64
+  tags:             netgo,builtinassets,stringlabels
+
+
+***** Understand the Prometheys Default Configuration

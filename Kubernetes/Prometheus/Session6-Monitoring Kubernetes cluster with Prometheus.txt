@@ -1,0 +1,20 @@
+***** Using Prometheus with Kubernetes
+- USing Prometheus operator
+Helm to add prometheus operator to K8 cluster
+metric available
+
+Prometheus operator
+- Operator Extends K8 APIs to simplify Deployment, config and management
+- Operators automate common tasks
+- Prometheus operator create series of k8s CRDs (custom reosource definition)
+
+
+***** Installing and using Prometheus cluster
+
+
+***** Access Prometheus installed in kubernetes cluster
+pod forwarding
+Expose prometheus-server deployment as load balancer
+
+
+***** Explore Prometheus kubernetes metrics

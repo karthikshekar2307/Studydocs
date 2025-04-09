@@ -1,0 +1,40 @@
+***** Openshift templates
+A template is a Kubernetes custom resource that describes a set of Kubernetes resource configurations. Templates can have parameters. 
+You can create a set of related Kubernetes resources from a template by processing the template, and providing values for the parameters.
+Templates have varied use cases, and can create any Kubernetes resource. You can create a list of resources from a template by using the CLI or, 
+if a template is uploaded to your project or to theglobal template library, by using the web console
+
+***** Commands:
+- To get a list of all available templates in the cluster
+# oc get templates -n openshift
+
+- To create resources from the template
+# oc new-app --template=cache-service -p APPLICATION_USER=my-user
+
+- To further customise the template use 'oc process'
+# oc process my-cache-service -p APPLICATION_USER=user1 -o yaml > mycache-service.manifest.yaml
+
+if a user do not have access to templates in a specific namespace, he cant create the template resources
+# oc get templates cache-service -n openshift -o yaml > cache-service.yaml
+
+# oc process -f cache-service.yaml -p APPLICATION_USER=user1 -o yaml > cache.yaml
+
+# oc create -f cache.yaml - uploades the template to the nameppace
+
+# oc apply -f cache.yaml
+
+- We can also use parameter file to pass parameters
+# vi my-params.env
+APPLICATION_USER=user1
+
+# oc process -f cache-service.yaml --param-file=my-params.env > -o yaml > cache3.yaml
+
+# oc create -f cache3.yaml
+
+- We can create resources from templates while performing 'oc process'
+# oc process my-cache-service --param-file=my-cache-params.env | oc apply -f -
+
+
+***** Helm
+
+

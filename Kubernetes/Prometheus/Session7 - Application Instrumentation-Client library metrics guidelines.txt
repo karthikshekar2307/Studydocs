@@ -1,0 +1,25 @@
+***** Client libraries and Metric types
+- Client library
+Client libraries are used to easily instrument the service or application.
+Prometheus supports official client Libs and unofficial third-party client Libs
+
+- Metric types
+Counter: Single monotonically increasing counter
+Guage: that represents a single numerical value that can arbitrarily go up and down
+Histogram: samples observations, request durations or reponse sizes.
+Summary: similary to historgram
+
+
+***** Setup python application for instrumentation.
+
+****** Monitor application using prometheus
+
+***** Expose counter metrics
+
+****** Adding labels to exposed metrics
+
+***** Expose Guage metric
+
+***** Expose summary metrics
+
+***** Expose Histogram metrics

@@ -1,0 +1,54 @@
+***** Blackbox Exporter - Monitoring
+Exporters - works along with application. They are necessary since they are the fundamental 
+prometheus functionality that collects metrics Prometheus scrapes these metrics to provide you with
+application and infrastrucuture visibility
+
+Blackbox exporter is used for network endpoint monitoring and can help generate meaningful
+uptime and availability metrics
+
+Blackbox exporter can probe endpoints over HTTP, HTTPS, DNS, TCP and ICMP
+
+Inside the blackbox exporter config, user defines modules. Then, Prometheus can query each of those
+modules for a set of specific targets.
+
+Use cases:
+- No system internal knowledge required
+- Used to measure response times
+- To resolve DNS response time to resolve network latency issue.
+- To check the availability of services, Uptime, network health and other things.
+
+
+***** HTTP Probe module 1
+Prometheus sends HTTP request that includes module and target
+then, blackbox open probe against target
+
+
+***** HTTP probe module 2
+To enable ipv4
+cp blackbox.yml blackbox.yml.backup
+vi blackbox.yml
+
+http_ipv4:
+  prober: http
+  http:
+    preferred_ip_protocol: ipv4
+
+<save and commit>
+
+
+****** HTTP probe module 3
+prober: http
+  http:
+    preferred_ip_protocol: ipv4
+
+***** TCP probe module
+
+
+**** DNS Probe module
+
+dns_sample:
+  prober: dns
+  dns:
+    transport_protocol: "tcp"
+    preferred_ip_protocol: ip4
+    
