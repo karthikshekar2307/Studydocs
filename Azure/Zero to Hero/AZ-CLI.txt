@@ -1,0 +1,14 @@
+***** Commands used
+1. Create resource group
+ az group create --location westus --resource-group develop-rg1
+{
+  "id": "/subscriptions/0e70756c-1c75-488a-937e-87fa5ec33009/resourceGroups/develop-rg1",
+  "location": "westus",
+  "managedBy": null,
+  "name": "develop-rg1",
+  "properties": {
+    "provisioningState": "Succeeded"
+  },
+  "tags": null,
+  "type": "Microsoft.Resources/resourceGroups"
+}

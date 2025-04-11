@@ -1,0 +1,28 @@
+**** Regions
+- there are about 60 regions
+- some of the regions have more than one physical datanceter
+
+Paired region
+- Some regions have designated pair region
+- when a full region fails - the other one can fill its place
+- Set by Azure and cannot be changed.
+
+***** Azure services
+
+
+***** Subscriptions vs account
+Subscription - logical container
+account - IdentityAzure subscription 1
+
+Subscritions - Contains the various resources you provision in the cloud (VMs, DBs, networks)
+Can be attached to a lot of accounts
+
+Account - An identity with access to resources in the subscription
+can be attached to a lot of subscriptions
+
+
+***** Creating resources
+- create resource group
+
+
+***** Finding a resource

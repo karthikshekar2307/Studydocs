@@ -1,0 +1,70 @@
+***** Regions
+- Every resource should be placed in region
+
+Factors for choosing region
+- Proximity
+- services availability
+
+Some of the regions have AZ, this means that region has multiple data center
+
+
+***** Resource groups
+- A logic container for resources
+- Used for grouping resources by a logic boundary
+- Example
+development/test/production resources
+Team A resources
+
+best practise to have RG/rg with naming standards
+
+Differences between resource groups and subscriptions
+
+Management group ----- Subscriptions ----- Resource groups ------ Resources
+
+Management Group - Manages subscriptions
+
+Resource groups:
+Logical resource container
+
+Subscriptions:
+Account level container (cost center)
+
+
+***** Storage account
+- Used to store almost anything in Azure
+- Used transparently by various services
+For example:
+Database backups
+VM disks
+Diagnostics data
+- Used for explicit data storage
+- Quite cheap
+
+
+***** SLA - calculation
+- To get the actual ssytem SLA, multiply the SLAs of the participating services
+
+APP services - 99.95
+Azure SQL SLA - 99.99%
+Actual SLA - 99.95 * 99.99 = 99.94% = 5h 15m
+
+There are many online tools to calculate SLA.
+
+For example, if you want to know how much downtime is allowed with 97% SLA - then SLA calculators will really help you with that.
+
+My favorite tool is:
+
+https://uptime.is/
+
+It is dead simple - just type in the SLA, hit Enter, and see the numbers.
+
+Highly recommended.
+
+
+***** Cost
+Pricing model
+- per resource
+- per consumption (ex. Function Apps)
+- Reservation
+
+
